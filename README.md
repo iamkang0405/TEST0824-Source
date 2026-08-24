@@ -30,3 +30,20 @@
 - 코스별 마커와 이동 경로 표시
 - 장소 상세 패널 및 저장 기능 추가
 - Vercel 배포용 앱 구조로 전환
+
+## 장소 CSV 작성 방법
+
+장소 데이터는 `data/pohang_places_template.csv`를 복사해 작성합니다. 한 줄에 장소 하나를 입력하면 됩니다. `tags`, `companion`, `transport`처럼 여러 값을 넣는 칸은 `|`로 구분합니다.
+
+중요한 컬럼:
+
+- `theme`: 힐링, 맛집 투어, 액티비티, 문화 중 하나
+- `season`: 사계절, 봄, 여름, 가을, 겨울 또는 조합
+- `event`: 특정 계절/기간 이벤트명
+- `day_priority`: 1일차에 우선 추천할지 나타내는 숫자
+- `indoor_outdoor`: 실내, 실외, 실내·실외
+- `latitude`, `longitude`: 네이버 지도 마커 위치
+- `recommended_stay_min`: 권장 체류 시간(분)
+- `companion`: 어울리는 동행 유형을 `|`로 구분
+
+날짜를 직접 특정하는 이벤트는 추후 `event_start`, `event_end` 컬럼을 추가해 기간 필터로 확장할 수 있습니다.
