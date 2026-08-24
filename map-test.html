@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>포항 핫플 나들이 추천기 · 지도 테스트</title>
+  <style>
+    :root { --navy: #123b73; --blue: #005db7; --bg: #f6f9fd; --line: #dce6f2; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: #0e1c31; font-family: Arial, "Noto Sans KR", sans-serif; }
+    header { padding: 22px 28px; background: white; border-bottom: 1px solid var(--line); }
+    h1 { margin: 0 0 8px; font-size: 24px; color: var(--navy); }
+    p { margin: 0; color: #6e7d92; }
+    main { display: grid; grid-template-columns: 320px 1fr; gap: 18px; min-height: calc(100vh - 91px); padding: 18px; }
+    aside { padding: 18px; background: white; border: 1px solid var(--line); border-radius: 18px; }
+    aside h2 { margin: 0 0 14px; font-size: 18px; }
+    .place { width: 100%; margin: 8px 0; padding: 12px; text-align: left; background: #f1f5fa; border: 0; border-radius: 10px; cursor: pointer; }
+    .place:hover, .place:focus { background: #dfeaff; outline: 2px solid #619efd; }
+    .place strong, .place span { display: block; }
+    .place span { margin-top: 4px; color: #6e7d92; font-size: 12px; }
+    #naverMap { position: relative; width: 100%; min-height: 560px; border-radius: 18px; overflow: hidden; border: 1px solid var(--line); background: #eaf3ff; }
+    .demo-map { position: absolute; inset: 0; overflow: hidden; background: linear-gradient(135deg, #eaf3ff 0 42%, #d5ebf6 42% 58%, #edf4f8 58%); }
+    .demo-map::before, .demo-map::after { content: ''; position: absolute; width: 140%; height: 2px; background: rgba(80, 137, 170, .18); transform: rotate(-17deg); left: -20%; top: 43%; box-shadow: 0 90px rgba(80,137,170,.12), 0 180px rgba(80,137,170,.1); }
+    .demo-map::after { transform: rotate(28deg); top: 28%; opacity: .7; }
+    .demo-label { position: absolute; color: #6e7d92; font-size: 12px; font-weight: 600; }
+    .demo-marker { position: absolute; transform: translate(-50%, -100%); padding: 7px 9px; color: white; background: #123b73; border-radius: 8px; font-size: 12px; white-space: nowrap; cursor: pointer; box-shadow: 0 5px 14px rgba(18,59,115,.2); }
+    .demo-marker::after { content: ''; position: absolute; left: 50%; bottom: -7px; transform: translateX(-50%); border: 4px solid transparent; border-top-color: #123b73; }
+    .demo-note { position: absolute; right: 18px; top: 18px; padding: 10px 12px; background: rgba(255,255,255,.86); border: 1px solid var(--line); border-radius: 10px; color: #6e7d92; font-size: 12px; }
+    #status { margin-top: 16px; padding: 10px 12px; border-radius: 10px; background: #fff4e8; color: #855d1f; font-size: 13px; line-height: 1.5; }
+    @media (max-width: 768px) { main { grid-template-columns: 1fr; } #naverMap { min-height: 430px; } header { padding: 18px 16px; } main { padding: 16px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>포항 핫플 나들이 추천기</h1>
+    <p>네이버 지도 API 연결 테스트</p>
+  </header>
+  <main>
+    <aside>
+      <h2>포항 핫플</h2>
+      <div id="placeList"></div>
+      <div id="status">지도를 불러오는 중입니다.</div>
+    </aside>
+    <section id="naverMap" aria-label="포항 지도"></section>
+  </main>
+  <script>
+    const places = [
+      { name: '영일대해수욕장', category: '바다 · 산책', lat: 36.0566, lng: 129.3787 },
+      { name: '죽도시장', category: '시장 · 먹거리', lat: 36.0357, lng: 129.3657 },
+      { name: '호미곶', category: '일출 · 전망', lat: 36.0769, lng: 129.5689 },
+      { name: '구룡포 근대문화거리', category: '문화 · 산책', lat: 35.9918, lng: 129.5532 }
+    ];
+    const NAVER_CLIENT_ID = 'YOUR_NAVER_CLIENT_ID';
+    let map;
+    let infoWindow;
+
+    function initMap() {
+      map = new naver.maps.Map('naverMap', {
+        center: new naver.maps.LatLng(36.0190, 129.3435),
+        zoom: 11,
+        zoomControl: true,
+        zoomControlOptions: { position: naver.maps.Position.TOP_RIGHT }
+      });
+      infoWindow = new naver.maps.InfoWindow();
+
+      places.forEach((place) => {
+        const marker = new naver.maps.Marker({
+          map,
+          position: new naver.maps.LatLng(place.lat, place.lng),
+          title: place.name
+        });
+        naver.maps.Event.addListener(marker, 'click', () => showPlace(place, marker));
+      });
+      document.querySelector('#status').textContent = '연결 성공 · 마커를 클릭하거나 장소 목록을 선택해 보세요.';
+    }
+
+    function initDemoMap() {
+      const mapEl = document.querySelector('#naverMap');
+      mapEl.innerHTML = '<div class="demo-map"><span class="demo-note">데모 모드 · Client ID 없이 실행 중</span><span class="demo-label" style="left:13%;top:30%">포항역</span><span class="demo-label" style="left:58%;top:19%">동해</span><span class="demo-label" style="left:74%;top:76%">호미곶 방향</span></div>';
+      const positions = [
+        { left: '50%', top: '34%' }, { left: '37%', top: '49%' },
+        { left: '87%', top: '63%' }, { left: '81%', top: '48%' }
+      ];
+      places.forEach((place, index) => {
+        const marker = document.createElement('button');
+        marker.className = 'demo-marker';
+        marker.textContent = place.name;
+        marker.style.left = positions[index].left;
+        marker.style.top = positions[index].top;
+        marker.type = 'button';
+        marker.addEventListener('click', () => {
+          document.querySelector('#status').textContent = `${place.name} 선택 · ${place.category}`;
+        });
+        mapEl.querySelector('.demo-map').appendChild(marker);
+      });
+      document.querySelector('#status').textContent = '데모 모드 · 장소를 클릭해 기능을 확인할 수 있습니다.';
+    }
+
+    function showPlace(place, marker) {
+      map.panTo(marker.getPosition());
+      infoWindow.setContent(`<div style="padding:12px 14px;font-size:13px"><strong>${place.name}</strong><br><span style="color:#6e7d92">${place.category}</span></div>`);
+      infoWindow.open(map, marker);
+    }
+
+    document.querySelector('#placeList').innerHTML = places.map((place, index) => `
+      <button class="place" type="button" data-index="${index}">
+        <strong>${place.name}</strong><span>${place.category}</span>
+      </button>`).join('');
+
+    document.querySelectorAll('.place').forEach((button) => {
+      button.addEventListener('click', () => {
+        const place = places[Number(button.dataset.index)];
+        if (map) {
+          const markerPosition = new naver.maps.LatLng(place.lat, place.lng);
+          map.panTo(markerPosition);
+          map.setZoom(14);
+        } else {
+          document.querySelector('#status').textContent = `${place.name} 선택 · ${place.category}`;
+        }
+      });
+    });
+
+    window.navermap_authFailure = () => {
+      document.querySelector('#status').textContent = '인증 실패: Client ID, Dynamic Map 설정, 허용 도메인을 확인하세요.';
+    };
+
+    if (NAVER_CLIENT_ID === 'YOUR_NAVER_CLIENT_ID') {
+      initDemoMap();
+    } else {
+      const script = document.createElement('script');
+      script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${NAVER_CLIENT_ID}&callback=initMap`;
+      script.async = true;
+      document.head.appendChild(script);
+    }
+  </script>
+</body>
+</html>
