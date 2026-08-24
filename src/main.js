@@ -15,6 +15,9 @@ document.querySelector('#app').innerHTML = `
   <main class="explorer">
     <section id="map" aria-label="포항 전체 지도"></section>
     <div class="map-scrim"></div>
+    <button class="peek-tab peek-top" id="peek-top" aria-label="추천기 열기">⌄</button>
+    <button class="peek-tab peek-left" id="peek-left" aria-label="추천기 열기">›</button>
+    <button class="peek-tab peek-right" id="peek-right" aria-label="추천기 열기">‹</button>
     <header class="brand"><p class="eyebrow">POHANG EXPLORER</p><h1>포항 핫플 나들이 추천기</h1><p>가고 싶은 분위기에 맞춰 포항 코스를 찾아보세요.</p></header>
     <aside class="planner panel">
       <div class="panel-heading"><div><p class="eyebrow">PLAN YOUR DAY</p><h2>나의 여행 조건</h2></div><span class="step">01</span></div>
@@ -162,6 +165,7 @@ document.querySelector('#calendar-trigger').addEventListener('click', (event) =>
 const overlayItems = [document.querySelector('.brand'), document.querySelector('.planner'), document.querySelector('.results')];
 function togglePanels() { document.querySelector('.explorer').classList.toggle('panels-collapsed'); }
 overlayItems.forEach((item) => item.addEventListener('click', (event) => { if (document.querySelector('.explorer').classList.contains('panels-collapsed')) { event.stopPropagation(); togglePanels(); } }));
+document.querySelectorAll('.peek-tab').forEach((tab) => tab.addEventListener('click', (event) => { event.stopPropagation(); document.querySelector('.explorer').classList.remove('panels-collapsed'); }));
 
 let people = 2;
 document.querySelector('#minus').addEventListener('click', () => { people = Math.max(1, people - 1); document.querySelector('#people-count').textContent = `${people}명`; });
