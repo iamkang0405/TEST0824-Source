@@ -20,7 +20,7 @@ document.querySelector('#app').innerHTML = `
       <div class="panel-heading"><div><p class="eyebrow">PLAN YOUR DAY</p><h2>나의 여행 조건</h2></div><span class="step">01</span></div>
       <label>테마</label><div class="chips" id="theme-chips"><button class="chip active" data-theme="힐링">힐링</button><button class="chip" data-theme="맛집 투어">맛집 투어</button><button class="chip" data-theme="액티비티">액티비티</button><button class="chip" data-theme="문화">문화</button></div>
       <label>인원</label><div class="people"><button class="counter" id="minus">−</button><strong id="people-count">2명</strong><button class="counter" id="plus">+</button></div>
-      <label for="trip-date">여행 기간</label><input id="trip-date" type="date" />
+      <label>여행 기간 <span class="date-help" id="trip-summary">날짜를 선택해 주세요</span></label><div class="date-range"><input id="start-date" type="date" aria-label="여행 시작일" /><span>~</span><input id="end-date" type="date" aria-label="여행 종료일" /></div>
       <div class="time-row"><div><label for="start-time">시작 시간</label><input id="start-time" type="time" value="10:00" /></div><div><label for="duration">가용 시간</label><select id="duration"><option>4시간</option><option>6시간</option><option>8시간</option></select></div></div>
       <label>이동 수단</label><div class="transport"><button class="transport-btn active">🚗 자차</button><button class="transport-btn">🚌 대중교통</button></div>
       <button class="primary-btn" id="recommend-btn">이 조건으로 코스 추천받기 <span>→</span></button>
@@ -28,6 +28,8 @@ document.querySelector('#app').innerHTML = `
     </aside>
     <aside class="results panel">
       <div class="panel-heading"><div><p class="eyebrow">MY TRIP</p><h2>내가 선택한 여행지</h2></div><span class="count" id="selected-count">0곳</span></div>
+      <div id="day-tabs" class="day-tabs"><button class="day-tab active" data-day="0">1일차</button></div>
+      <div class="day-theme"><span>이 날의 테마</span><select id="day-theme-select"><option>힐링</option><option>맛집 투어</option><option>액티비티</option><option>문화</option></select></div>
       <div id="selected-list" class="selected-list"><div class="empty-state">왼쪽에서 조건을 고르면<br>추천 장소가 여기에 표시됩니다.</div></div>
       <div class="recommend-header"><h3>테마별 추천 여행지</h3><button class="text-btn">전체 보기</button></div>
       <div id="place-list" class="mini-place-list"></div>
@@ -62,36 +64,68 @@ function focusPlace(place, marker) {
   infoWindow.open(map, marker);
 }
 
-const selected = [];
+let currentDay = 0;
+let dayPlans = [{ places: [], theme: '힐링' }];
+function currentPlaces() { return dayPlans[currentDay].places; }
 list.addEventListener('click', (event) => {
   const button = event.target.closest('.place');
   if (!button) return;
   const index = Number(button.dataset.index);
   const place = places[index];
   if (map) focusPlace(place, markers[index]);
-  if (!selected.some((item) => item.name === place.name)) selected.push(place);
+  if (!currentPlaces().some((item) => item.name === place.name)) currentPlaces().push(place);
   renderSelected();
 });
 
 function renderSelected() {
+  const selected = currentPlaces();
   document.querySelector('#selected-count').textContent = `${selected.length}곳`;
-  document.querySelector('#selected-list').innerHTML = selected.length ? selected.map((place, index) => `<div class="selected-place"><span class="route-number">${index + 1}</span><div><strong>${place.name}</strong><small>${place.category}</small></div><button data-remove="${place.name}">×</button></div>`).join('') : '<div class="empty-state">왼쪽에서 조건을 고르면<br>추천 장소가 여기에 표시됩니다.</div>';
+  document.querySelector('#selected-list').innerHTML = selected.length ? selected.map((place, index) => `<div class="selected-place"><span class="route-number">${index + 1}</span><div><strong>${place.name}</strong><small>${place.category}</small></div><button data-remove="${place.name}">×</button></div>`).join('') : '<div class="empty-state">이 날짜에 갈 장소를<br>아래 추천 목록에서 추가해 보세요.</div>';
 }
 
 document.querySelector('#selected-list').addEventListener('click', (event) => {
   const button = event.target.closest('[data-remove]');
   if (!button) return;
-  const index = selected.findIndex((place) => place.name === button.dataset.remove);
-  if (index >= 0) selected.splice(index, 1);
+  const index = currentPlaces().findIndex((place) => place.name === button.dataset.remove);
+  if (index >= 0) currentPlaces().splice(index, 1);
   renderSelected();
 });
+
+function dateDiff(start, end) {
+  const startDate = new Date(`${start}T00:00:00`);
+  const endDate = new Date(`${end}T00:00:00`);
+  return Math.round((endDate - startDate) / 86400000);
+}
+function renderDayTabs(days) {
+  document.querySelector('#day-tabs').innerHTML = Array.from({ length: days }, (_, index) => `<button class="day-tab ${index === currentDay ? 'active' : ''}" data-day="${index}">${index + 1}일차</button>`).join('');
+  document.querySelectorAll('.day-tab').forEach((button) => button.addEventListener('click', () => {
+    currentDay = Number(button.dataset.day);
+    document.querySelector('#day-theme-select').value = dayPlans[currentDay].theme;
+    renderDayTabs(days); renderSelected();
+  }));
+}
+function updateTripDates() {
+  const start = document.querySelector('#start-date').value;
+  const end = document.querySelector('#end-date').value;
+  if (!start || !end) return;
+  const nights = dateDiff(start, end);
+  if (nights < 0) { document.querySelector('#trip-summary').textContent = '종료일은 시작일 이후로 선택해 주세요'; return; }
+  const days = nights + 1;
+  while (dayPlans.length < days) dayPlans.push({ places: [], theme: '힐링' });
+  dayPlans = dayPlans.slice(0, days); currentDay = Math.min(currentDay, days - 1);
+  document.querySelector('#trip-summary').textContent = `${nights}박 ${days}일`;
+  renderDayTabs(days); renderSelected();
+}
+document.querySelector('#start-date').addEventListener('change', updateTripDates);
+document.querySelector('#end-date').addEventListener('change', updateTripDates);
+document.querySelector('#day-theme-select').addEventListener('change', (event) => { dayPlans[currentDay].theme = event.target.value; });
 
 let people = 2;
 document.querySelector('#minus').addEventListener('click', () => { people = Math.max(1, people - 1); document.querySelector('#people-count').textContent = `${people}명`; });
 document.querySelector('#plus').addEventListener('click', () => { people = Math.min(20, people + 1); document.querySelector('#people-count').textContent = `${people}명`; });
 document.querySelectorAll('.chip').forEach((chip) => chip.addEventListener('click', () => { document.querySelectorAll('.chip').forEach((item) => item.classList.remove('active')); chip.classList.add('active'); }));
 document.querySelectorAll('.transport-btn').forEach((button) => button.addEventListener('click', () => { document.querySelectorAll('.transport-btn').forEach((item) => item.classList.remove('active')); button.classList.add('active'); }));
-document.querySelector('#recommend-btn').addEventListener('click', () => { if (!selected.length) { places.slice(0, 2).forEach((place) => selected.push(place)); renderSelected(); } setStatus(`${document.querySelector('.chip.active').dataset.theme} 테마로 ${selected.length}곳 코스를 만들었습니다.`); });
+document.querySelector('#recommend-btn').addEventListener('click', () => { const selected = currentPlaces(); if (!selected.length) { places.slice(0, 2).forEach((place) => selected.push(place)); renderSelected(); } setStatus(`${dayPlans[currentDay].theme} 테마로 ${currentDay + 1}일차 ${selected.length}곳 코스를 만들었습니다.`); });
 
 window.navermap_authFailure = () => setStatus('인증 실패 · Client ID와 허용 도메인을 확인하세요.');
 
