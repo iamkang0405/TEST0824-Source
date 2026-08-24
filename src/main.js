@@ -20,7 +20,7 @@ document.querySelector('#app').innerHTML = `
       <div class="panel-heading"><div><p class="eyebrow">PLAN YOUR DAY</p><h2>나의 여행 조건</h2></div><span class="step">01</span></div>
       <label>테마</label><div class="chips" id="theme-chips"><button class="chip active" data-theme="힐링">힐링</button><button class="chip" data-theme="맛집 투어">맛집 투어</button><button class="chip" data-theme="액티비티">액티비티</button><button class="chip" data-theme="문화">문화</button></div>
       <label>인원</label><div class="people"><button class="counter" id="minus">−</button><strong id="people-count">2명</strong><button class="counter" id="plus">+</button></div>
-      <label>여행 기간 <span class="date-help" id="trip-summary">날짜를 선택해 주세요</span></label><div class="date-range"><input id="start-date" type="date" aria-label="여행 시작일" /><span>~</span><input id="end-date" type="date" aria-label="여행 종료일" /></div>
+      <label>여행 기간 <span class="date-help" id="trip-summary">날짜를 선택해 주세요</span></label><button class="calendar-trigger" id="calendar-trigger">📅 여행 날짜 선택</button><div id="calendar" class="calendar hidden"></div>
       <div class="time-row"><div><label for="start-time">시작 시간</label><input id="start-time" type="time" value="10:00" /></div><div><label for="duration">가용 시간</label><select id="duration"><option>4시간</option><option>6시간</option><option>8시간</option></select></div></div>
       <label>이동 수단</label><div class="transport"><button class="transport-btn active">🚗 자차</button><button class="transport-btn">🚌 대중교통</button></div>
       <button class="primary-btn" id="recommend-btn">이 조건으로 코스 추천받기 <span>→</span></button>
@@ -78,7 +78,7 @@ list.addEventListener('click', (event) => {
 });
 
 function renderSelected() {
-  const selected = currentPlaces();
+const selected = currentPlaces();
   document.querySelector('#selected-count').textContent = `${selected.length}곳`;
   document.querySelector('#selected-list').innerHTML = selected.length ? selected.map((place, index) => `<div class="selected-place"><span class="route-number">${index + 1}</span><div><strong>${place.name}</strong><small>${place.category}</small></div><button data-remove="${place.name}">×</button></div>`).join('') : '<div class="empty-state">이 날짜에 갈 장소를<br>아래 추천 목록에서 추가해 보세요.</div>';
 }
@@ -116,9 +116,49 @@ function updateTripDates() {
   document.querySelector('#trip-summary').textContent = `${nights}박 ${days}일`;
   renderDayTabs(days); renderSelected();
 }
-document.querySelector('#start-date').addEventListener('change', updateTripDates);
-document.querySelector('#end-date').addEventListener('change', updateTripDates);
 document.querySelector('#day-theme-select').addEventListener('change', (event) => { dayPlans[currentDay].theme = event.target.value; });
+
+let calendarStart = null;
+let calendarEnd = null;
+let calendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+const calendar = document.querySelector('#calendar');
+const pad = (number) => String(number).padStart(2, '0');
+const dateKey = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+function renderCalendar() {
+  const year = calendarMonth.getFullYear(); const month = calendarMonth.getMonth();
+  const firstDay = new Date(year, month, 1).getDay(); const lastDate = new Date(year, month + 1, 0).getDate();
+  let html = `<div class="calendar-head"><button data-calendar-prev>‹</button><strong>${year}년 ${month + 1}월</strong><button data-calendar-next>›</button></div><div class="weekdays"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div><div class="calendar-days">`;
+  for (let i = 0; i < firstDay; i++) html += '<span></span>';
+  for (let day = 1; day <= lastDate; day++) {
+    const current = new Date(year, month, day); const key = dateKey(current);
+    const isStart = calendarStart === key; const isEnd = calendarEnd === key;
+    const inRange = calendarStart && calendarEnd && key > calendarStart && key < calendarEnd;
+    html += `<button class="calendar-day ${isStart ? 'range-start' : ''} ${isEnd ? 'range-end' : ''} ${inRange ? 'in-range' : ''}" data-date="${key}">${day}</button>`;
+  }
+  html += '</div><p class="calendar-hint">첫 날짜와 마지막 날짜를 차례로 선택하세요.</p>'; calendar.innerHTML = html;
+  calendar.querySelector('[data-calendar-prev]').addEventListener('click', (e) => { e.stopPropagation(); calendarMonth = new Date(year, month - 1, 1); renderCalendar(); });
+  calendar.querySelector('[data-calendar-next]').addEventListener('click', (e) => { e.stopPropagation(); calendarMonth = new Date(year, month + 1, 1); renderCalendar(); });
+  calendar.querySelectorAll('[data-date]').forEach((button) => button.addEventListener('click', (e) => { e.stopPropagation(); selectCalendarDate(button.dataset.date); }));
+}
+function selectCalendarDate(key) {
+  if (!calendarStart || (calendarStart && calendarEnd)) { calendarStart = key; calendarEnd = null; }
+  else if (key < calendarStart) { calendarEnd = calendarStart; calendarStart = key; }
+  else calendarEnd = key;
+  renderCalendar();
+  if (calendarStart && calendarEnd) {
+    const nights = dateDiff(calendarStart, calendarEnd); const days = nights + 1;
+    while (dayPlans.length < days) dayPlans.push({ places: [], theme: '힐링' }); dayPlans = dayPlans.slice(0, days); currentDay = 0;
+    document.querySelector('#trip-summary').textContent = `${nights}박 ${days}일`;
+    document.querySelector('#calendar-trigger').textContent = `${calendarStart.replaceAll('-', '.')} ~ ${calendarEnd.replaceAll('-', '.')}`;
+    renderDayTabs(days); renderSelected(); calendar.classList.add('hidden');
+  } else document.querySelector('#trip-summary').textContent = '마지막 날짜를 선택해 주세요';
+}
+document.querySelector('#calendar-trigger').addEventListener('click', (event) => { event.stopPropagation(); calendar.classList.toggle('hidden'); renderCalendar(); });
+
+const overlayItems = [document.querySelector('.brand'), document.querySelector('.planner'), document.querySelector('.results')];
+function togglePanels() { document.querySelector('.explorer').classList.toggle('panels-collapsed'); }
+document.querySelector('.map-scrim').addEventListener('click', togglePanels);
+overlayItems.forEach((item) => item.addEventListener('click', (event) => { if (document.querySelector('.explorer').classList.contains('panels-collapsed')) { event.stopPropagation(); togglePanels(); } }));
 
 let people = 2;
 document.querySelector('#minus').addEventListener('click', () => { people = Math.max(1, people - 1); document.querySelector('#people-count').textContent = `${people}명`; });
