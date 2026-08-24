@@ -56,9 +56,27 @@ const clientId = __NAVER_MAP_CLIENT_ID__;
 if (!clientId) {
   setStatus('NAVER_MAP_CLIENT_ID가 없습니다. .env 파일을 확인하세요.');
 } else {
-  window.initMap = initMap;
   const script = document.createElement('script');
-  script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${encodeURIComponent(clientId)}&callback=initMap`;
+  // callback으로 즉시 실행하면 일부 브라우저에서 naver 전역 객체보다
+  // initMap이 먼저 실행되는 경우가 있어, API 로드 후 직접 준비 상태를 확인합니다.
+  script.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${encodeURIComponent(clientId)}`;
   script.async = true;
+  script.onload = () => {
+    let attempts = 0;
+    const waitForNaver = () => {
+      if (window.naver?.maps) {
+        initMap();
+        return;
+      }
+      attempts += 1;
+      if (attempts > 50) {
+        setStatus('네이버 지도 API가 준비되지 않았습니다 · Client ID와 Dynamic Map 설정을 확인하세요.');
+        return;
+      }
+      window.setTimeout(waitForNaver, 100);
+    };
+    waitForNaver();
+  };
+  script.onerror = () => setStatus('네이버 지도 API 로드 실패 · Client ID와 네이버 콘솔의 허용 도메인을 확인하세요.');
   document.head.appendChild(script);
 }
