@@ -54,6 +54,10 @@ function initMap() {
     markers.push(marker);
     naver.maps.Event.addListener(marker, 'click', () => focusPlace(place, marker));
   });
+  naver.maps.Event.addListener(map, 'click', () => {
+    const explorer = document.querySelector('.explorer');
+    if (!explorer.classList.contains('panels-collapsed')) explorer.classList.add('panels-collapsed');
+  });
   setStatus('지도 연결 성공 · 장소를 선택해 보세요.');
 }
 
@@ -157,7 +161,6 @@ document.querySelector('#calendar-trigger').addEventListener('click', (event) =>
 
 const overlayItems = [document.querySelector('.brand'), document.querySelector('.planner'), document.querySelector('.results')];
 function togglePanels() { document.querySelector('.explorer').classList.toggle('panels-collapsed'); }
-document.querySelector('.map-scrim').addEventListener('click', togglePanels);
 overlayItems.forEach((item) => item.addEventListener('click', (event) => { if (document.querySelector('.explorer').classList.contains('panels-collapsed')) { event.stopPropagation(); togglePanels(); } }));
 
 let people = 2;
