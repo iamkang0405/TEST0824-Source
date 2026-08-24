@@ -12,11 +12,30 @@ let markers = [];
 let infoWindow;
 
 document.querySelector('#app').innerHTML = `
-  <header><p class="eyebrow">POHANG EXPLORER</p><h1>포항 핫플 나들이 추천기</h1><p>가고 싶은 분위기에 맞춰 포항 코스를 찾아보세요.</p></header>
-  <main><aside><h2>추천 장소</h2><div id="place-list"></div><p id="status" class="status">네이버 지도를 불러오는 중입니다.</p></aside><section id="map" aria-label="포항 지도"></section></main>`;
+  <main class="explorer">
+    <section id="map" aria-label="포항 전체 지도"></section>
+    <div class="map-scrim"></div>
+    <header class="brand"><p class="eyebrow">POHANG EXPLORER</p><h1>포항 핫플 나들이 추천기</h1><p>가고 싶은 분위기에 맞춰 포항 코스를 찾아보세요.</p></header>
+    <aside class="planner panel">
+      <div class="panel-heading"><div><p class="eyebrow">PLAN YOUR DAY</p><h2>나의 여행 조건</h2></div><span class="step">01</span></div>
+      <label>테마</label><div class="chips" id="theme-chips"><button class="chip active" data-theme="힐링">힐링</button><button class="chip" data-theme="맛집 투어">맛집 투어</button><button class="chip" data-theme="액티비티">액티비티</button><button class="chip" data-theme="문화">문화</button></div>
+      <label>인원</label><div class="people"><button class="counter" id="minus">−</button><strong id="people-count">2명</strong><button class="counter" id="plus">+</button></div>
+      <label for="trip-date">여행 기간</label><input id="trip-date" type="date" />
+      <div class="time-row"><div><label for="start-time">시작 시간</label><input id="start-time" type="time" value="10:00" /></div><div><label for="duration">가용 시간</label><select id="duration"><option>4시간</option><option>6시간</option><option>8시간</option></select></div></div>
+      <label>이동 수단</label><div class="transport"><button class="transport-btn active">🚗 자차</button><button class="transport-btn">🚌 대중교통</button></div>
+      <button class="primary-btn" id="recommend-btn">이 조건으로 코스 추천받기 <span>→</span></button>
+      <p id="status" class="status">네이버 지도를 불러오는 중입니다.</p>
+    </aside>
+    <aside class="results panel">
+      <div class="panel-heading"><div><p class="eyebrow">MY TRIP</p><h2>내가 선택한 여행지</h2></div><span class="count" id="selected-count">0곳</span></div>
+      <div id="selected-list" class="selected-list"><div class="empty-state">왼쪽에서 조건을 고르면<br>추천 장소가 여기에 표시됩니다.</div></div>
+      <div class="recommend-header"><h3>테마별 추천 여행지</h3><button class="text-btn">전체 보기</button></div>
+      <div id="place-list" class="mini-place-list"></div>
+    </aside>
+  </main>`;
 
 const list = document.querySelector('#place-list');
-list.innerHTML = places.map((place, index) => `<button class="place" data-index="${index}"><strong>${place.name}</strong><span>${place.category}</span></button>`).join('');
+list.innerHTML = places.map((place, index) => `<button class="place" data-index="${index}"><span class="place-number">0${index + 1}</span><span><strong>${place.name}</strong><small>${place.category}</small></span><span class="add-place">+</span></button>`).join('');
 
 function setStatus(message) { document.querySelector('#status').textContent = message; }
 
@@ -43,12 +62,36 @@ function focusPlace(place, marker) {
   infoWindow.open(map, marker);
 }
 
+const selected = [];
 list.addEventListener('click', (event) => {
   const button = event.target.closest('.place');
-  if (!button || !map) return;
+  if (!button) return;
   const index = Number(button.dataset.index);
-  focusPlace(places[index], markers[index]);
+  const place = places[index];
+  if (map) focusPlace(place, markers[index]);
+  if (!selected.some((item) => item.name === place.name)) selected.push(place);
+  renderSelected();
 });
+
+function renderSelected() {
+  document.querySelector('#selected-count').textContent = `${selected.length}곳`;
+  document.querySelector('#selected-list').innerHTML = selected.length ? selected.map((place, index) => `<div class="selected-place"><span class="route-number">${index + 1}</span><div><strong>${place.name}</strong><small>${place.category}</small></div><button data-remove="${place.name}">×</button></div>`).join('') : '<div class="empty-state">왼쪽에서 조건을 고르면<br>추천 장소가 여기에 표시됩니다.</div>';
+}
+
+document.querySelector('#selected-list').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-remove]');
+  if (!button) return;
+  const index = selected.findIndex((place) => place.name === button.dataset.remove);
+  if (index >= 0) selected.splice(index, 1);
+  renderSelected();
+});
+
+let people = 2;
+document.querySelector('#minus').addEventListener('click', () => { people = Math.max(1, people - 1); document.querySelector('#people-count').textContent = `${people}명`; });
+document.querySelector('#plus').addEventListener('click', () => { people = Math.min(20, people + 1); document.querySelector('#people-count').textContent = `${people}명`; });
+document.querySelectorAll('.chip').forEach((chip) => chip.addEventListener('click', () => { document.querySelectorAll('.chip').forEach((item) => item.classList.remove('active')); chip.classList.add('active'); }));
+document.querySelectorAll('.transport-btn').forEach((button) => button.addEventListener('click', () => { document.querySelectorAll('.transport-btn').forEach((item) => item.classList.remove('active')); button.classList.add('active'); }));
+document.querySelector('#recommend-btn').addEventListener('click', () => { if (!selected.length) { places.slice(0, 2).forEach((place) => selected.push(place)); renderSelected(); } setStatus(`${document.querySelector('.chip.active').dataset.theme} 테마로 ${selected.length}곳 코스를 만들었습니다.`); });
 
 window.navermap_authFailure = () => setStatus('인증 실패 · Client ID와 허용 도메인을 확인하세요.');
 
