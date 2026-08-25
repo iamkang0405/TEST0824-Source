@@ -67,10 +67,23 @@ document.querySelector('#app').innerHTML = `
   </main>`;
 
 const list = document.querySelector('#place-list');
+let recommendationVelocity = 0;
+let recommendationFrame = null;
+function animateRecommendationScroll() {
+  recommendationFrame = requestAnimationFrame(() => {
+    list.scrollLeft += recommendationVelocity;
+    recommendationVelocity *= 0.9;
+    if (Math.abs(recommendationVelocity) > 0.15) animateRecommendationScroll();
+    else { recommendationVelocity = 0; recommendationFrame = null; }
+  });
+}
 list.addEventListener('wheel', (event) => {
   if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
   event.preventDefault();
-  list.scrollLeft += event.deltaY;
+  const multiplier = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? list.clientWidth : 1;
+  recommendationVelocity += event.deltaY * multiplier * 0.22;
+  recommendationVelocity = Math.max(-42, Math.min(42, recommendationVelocity));
+  if (!recommendationFrame) animateRecommendationScroll();
 }, { passive: false });
 function renderRecommendedPlaces(theme = document.querySelector('.chip.active')?.dataset.theme || '힐링') {
   const filtered = places.filter((place) => place.themes.includes(theme));
