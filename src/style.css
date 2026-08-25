@@ -56,3 +56,15 @@ input, select { width: 100%; padding: 11px; border: 1px solid #dce6f2; border-ra
 @media (max-width: 680px) { .explorer { min-height: 1100px; height: auto; overflow: visible; padding-bottom: 16px; }.map-scrim { min-height: 520px; }.brand { position: relative; top: auto; left: auto; margin: 0; border-radius: 0; }.panel { position: relative; top: auto; left: auto; right: auto; bottom: auto; width: auto; max-height: none; margin: 14px 16px; }.planner { margin-top: 14px; }.results { margin-top: 14px; } #map { position: absolute; height: 520px; min-height: 520px; } }
 .recommend-dock { }
 @media (max-width: 680px) { .recommend-dock { position: relative; left: auto; bottom: auto; width: calc(100% - 32px); min-width: 0; margin: 14px 16px; transform: none; }.recommend-dock .mini-place-list { display: flex; overflow-x: auto; max-height: none; }.recommend-dock .place { min-width: 190px; } }
+
+/* 접힌 상태에서는 레이어2 전체를 지도 밖으로 숨기고, 중앙 상단 버튼만 남깁니다. */
+.peek-tab.peek-left, .peek-tab.peek-right { display: none !important; }
+.peek-top { top: 14px; width: 148px; height: 42px; padding: 0; flex-direction: column; gap: 1px; border: 1px solid rgba(18,59,115,.18); border-radius: 11px; background: rgba(255,255,255,.96); color: #123b73; box-shadow: 0 8px 22px rgba(18,59,115,.16); font-size: 12px; font-weight: 800; }
+.peek-top span { line-height: 1.1; }
+.peek-top b { display: block; font-size: 17px; font-weight: 400; line-height: .65; }
+.peek-top:hover { border-color: #005db7; background: #fff; transform: translateX(-50%) translateY(1px); }
+.panels-collapsed .brand { transform: translateY(calc(-100% - 24px)); pointer-events: none; }
+.panels-collapsed .planner { transform: translateX(calc(-100% - 40px)); pointer-events: none; }
+.panels-collapsed .results { transform: translateX(calc(100% + 40px)); pointer-events: none; }
+.panels-collapsed .recommend-dock { transform: translate(-50%, calc(100% + 48px)); pointer-events: none; }
+.panels-collapsed .peek-tab.peek-top { display: flex !important; pointer-events: auto; }
