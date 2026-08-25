@@ -33,6 +33,7 @@ function placeImage(place) { return place.image_url || fallbackImages[place.them
 let map;
 let markers = [];
 let infoWindow;
+function closePlaceInfo() { if (infoWindow) infoWindow.close(); }
 const dayColors = ['#1769e0', '#e05b38', '#8b5cf6', '#159a70', '#d18b19'];
 function markerIcon(day, order) {
   const color = dayColors[(day - 1) % dayColors.length];
@@ -92,6 +93,7 @@ function initMap() {
   });
   syncMapMarkers();
   naver.maps.Event.addListener(map, 'click', () => {
+    closePlaceInfo();
     const explorer = document.querySelector('.explorer');
     if (!explorer.classList.contains('panels-collapsed')) explorer.classList.add('panels-collapsed');
   });
@@ -156,6 +158,7 @@ function syncMapMarkers() {
   });
 }
 list.addEventListener('click', (event) => {
+  closePlaceInfo();
   const button = event.target.closest('.place');
   if (!button) return;
   const index = Number(button.dataset.index);
@@ -173,6 +176,7 @@ const selected = currentPlaces();
 }
 
 document.querySelector('#selected-list').addEventListener('click', (event) => {
+  closePlaceInfo();
   const button = event.target.closest('[data-remove]');
   if (!button) return;
   const index = currentPlaces().findIndex((place) => place.name === button.dataset.remove);
@@ -207,6 +211,9 @@ function updateTripDates() {
   renderDayTabs(days); renderSelected();
 }
 document.querySelector('#day-theme-select').addEventListener('change', (event) => { dayPlans[currentDay].theme = event.target.value; });
+document.addEventListener('click', (event) => {
+  if (!event.target.closest('.route-pin')) closePlaceInfo();
+}, true);
 
 let calendarStart = null;
 let calendarEnd = null;
