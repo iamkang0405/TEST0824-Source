@@ -99,8 +99,9 @@ function initMap() {
 }
 
 function focusPlace(place, marker) {
-  map.panTo(marker.getPosition());
-  map.setZoom(14);
+  const target = marker.getPosition();
+  map.setZoom(16, true);
+  map.setCenter(target);
   infoWindow.setContent(`<div class="info"><strong>${place.name}</strong><span>${place.category}</span></div>`);
   infoWindow.open(map, marker);
 }
