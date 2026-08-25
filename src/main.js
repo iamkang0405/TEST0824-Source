@@ -110,6 +110,7 @@ let dayPlans = [{ places: [], theme: '힐링' }];
 function currentPlaces() { return dayPlans[currentDay].places; }
 function syncMapMarkers() {
   if (!map || !markers.length || typeof dayPlans === 'undefined') return;
+  const activeEntries = [];
   markers.forEach((marker, index) => {
     const place = places[index];
     const dayIndex = dayPlans.findIndex((plan) => plan.places.some((item) => item.id === place.id));
@@ -118,8 +119,23 @@ function syncMapMarkers() {
       return;
     }
     const order = dayPlans[dayIndex].places.findIndex((item) => item.id === place.id) + 1;
-    marker.setIcon(markerIcon(dayIndex + 1, order));
-    marker.setMap(dayIndex === currentDay ? map : null);
+    activeEntries.push({ marker, place, dayIndex, order });
+  });
+  const groups = new Map();
+  activeEntries.forEach((entry) => {
+    const key = `${entry.place.lat.toFixed(3)}:${entry.place.lng.toFixed(3)}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(entry);
+  });
+  activeEntries.forEach((entry) => {
+    const key = `${entry.place.lat.toFixed(3)}:${entry.place.lng.toFixed(3)}`;
+    const group = groups.get(key);
+    const groupIndex = group.indexOf(entry);
+    const angle = (Math.PI * 2 * groupIndex) / Math.max(group.length, 1);
+    const radius = group.length > 1 ? 0.00035 : 0;
+    entry.marker.setPosition(new naver.maps.LatLng(entry.place.lat + Math.sin(angle) * radius, entry.place.lng + Math.cos(angle) * radius));
+    entry.marker.setIcon(markerIcon(entry.dayIndex + 1, entry.order));
+    entry.marker.setMap(entry.dayIndex === currentDay ? map : null);
   });
 }
 list.addEventListener('click', (event) => {
