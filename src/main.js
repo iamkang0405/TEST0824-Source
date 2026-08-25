@@ -100,8 +100,23 @@ function initMap() {
 
 function focusPlace(place, marker) {
   const target = marker.getPosition();
-  map.setZoom(16, true);
   map.setCenter(target);
+  window.requestAnimationFrame(() => {
+    const mapEl = document.querySelector('#map');
+    const leftPanel = document.querySelector('.planner').getBoundingClientRect();
+    const rightPanel = document.querySelector('.results').getBoundingClientRect();
+    const dock = document.querySelector('.recommend-dock').getBoundingClientRect();
+    const mapRect = mapEl.getBoundingClientRect();
+    const visibleLeft = Math.max(mapRect.left, leftPanel.right);
+    const visibleRight = Math.min(mapRect.right, rightPanel.left);
+    const visibleTop = mapRect.top;
+    const visibleBottom = Math.min(mapRect.bottom, dock.top);
+    const targetX = (visibleLeft + visibleRight) / 2 - mapRect.left;
+    const targetY = (visibleTop + visibleBottom) / 2 - mapRect.top;
+    const centerX = mapRect.width / 2;
+    const centerY = mapRect.height / 2;
+    map.panBy(new naver.maps.Point(targetX - centerX, targetY - centerY));
+  });
   infoWindow.setContent(`<div class="info"><strong>${place.name}</strong><span>${place.category}</span></div>`);
   infoWindow.open(map, marker);
 }
