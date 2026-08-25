@@ -420,7 +420,6 @@ function moveReportPage(direction) { const pages = document.querySelectorAll('.r
 document.querySelector('#report-prev').addEventListener('click', () => moveReportPage(-1));
 document.querySelector('#report-next').addEventListener('click', () => moveReportPage(1));
 let reportTouchStartX = null;
-document.querySelector('.report-sheet').addEventListener('wheel', (event) => { if (Math.abs(event.deltaY) < 12) return; event.preventDefault(); moveReportPage(event.deltaY > 0 ? 1 : -1); }, { passive: false });
 document.querySelector('.report-sheet').addEventListener('touchstart', (event) => { reportTouchStartX = event.touches[0].clientX; }, { passive: true });
 document.querySelector('.report-sheet').addEventListener('touchend', (event) => { if (reportTouchStartX === null) return; const distance = event.changedTouches[0].clientX - reportTouchStartX; if (Math.abs(distance) > 45) moveReportPage(distance < 0 ? 1 : -1); reportTouchStartX = null; }, { passive: true });
 async function loadReportRoutes() {
