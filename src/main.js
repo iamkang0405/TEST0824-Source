@@ -463,7 +463,7 @@ async function loadReportRoutes() {
     const bounds = new naver.maps.LatLngBounds();
     routes.flat().forEach((route) => (route.path || []).forEach(([lng, lat]) => bounds.extend(new naver.maps.LatLng(lat, lng))));
     new naver.maps.Polyline({ map: routeMap, path: allPaths.map(([lng, lat]) => new naver.maps.LatLng(lat, lng)), strokeColor: '#1769e0', strokeWeight: 4, strokeOpacity: .8 });
-    routeMap.fitBounds(bounds, 30);
+    routeMap.fitBounds(bounds, 80);
   }
   renderReportRouteDay(reportDayIndex);
 }
@@ -481,7 +481,7 @@ function renderReportRouteDay(dayIndex) {
     const bounds = new naver.maps.LatLngBounds();
     placesForDay.forEach((place, index) => { const position = new naver.maps.LatLng(place.lat, place.lng); bounds.extend(position); new naver.maps.Marker({ map: routeMap, position, icon: markerIcon(dayIndex + 1, index + 1), title: `${index + 1}. ${place.name}` }); });
     dayRoutes.forEach((route) => { (route.path || []).forEach(([lng, lat]) => bounds.extend(new naver.maps.LatLng(lat, lng))); new naver.maps.Polyline({ map: routeMap, path: (route.path || []).map(([lng, lat]) => new naver.maps.LatLng(lat, lng)), strokeColor: '#1769e0', strokeWeight: 4, strokeOpacity: .8 }); });
-    routeMap.fitBounds(bounds, 30);
+    routeMap.fitBounds(bounds, 80);
   }
 }
 document.querySelector('#report-button').addEventListener('click', async () => { renderReport(); document.querySelector('#report-modal').classList.remove('hidden'); await loadReportRoutes(); });
