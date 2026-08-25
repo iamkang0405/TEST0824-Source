@@ -61,7 +61,6 @@ document.querySelector('#app').innerHTML = `
       <div class="panel-heading"><div><p class="eyebrow">MY TRIP</p><h2>내가 선택한 여행지</h2></div><div class="heading-actions"><span class="count" id="selected-count">0곳</span><button id="report-button" class="report-button" type="button">보고서</button></div></div>
       <div class="place-search"><label for="place-search-input">여행지 직접 추가</label><div class="place-search-row"><input id="place-search-input" type="search" placeholder="포항 장소 검색" autocomplete="off"><button id="place-search-button" type="button">검색</button></div><div id="place-search-results" class="place-search-results" aria-live="polite"></div></div>
       <div id="day-tabs" class="day-tabs"><button class="day-tab active" data-day="0">1일차</button></div>
-      <div class="day-theme"><span>이 날의 테마</span><select id="day-theme-select"><option>힐링</option><option>맛집 투어</option><option>액티비티</option><option>문화</option></select></div>
       <div id="selected-list" class="selected-list"><div class="empty-state compact-empty">아래 추천 명소에서<br>여행지를 추가해 보세요.</div></div>
     </aside>
     <section class="recommend-dock" aria-label="추천 명소"><div class="dock-heading"><p class="eyebrow">FOR YOUR DAY</p><h3>추천 명소</h3><button class="text-btn">전체 보기</button></div><div id="place-list" class="mini-place-list"></div></section>
@@ -289,7 +288,6 @@ function renderDayTabs(days) {
   document.querySelector('#day-tabs').innerHTML = Array.from({ length: days }, (_, index) => `<button class="day-tab ${index === currentDay ? 'active' : ''}" data-day="${index}">${index + 1}일차</button>`).join('');
   document.querySelectorAll('.day-tab').forEach((button) => button.addEventListener('click', () => {
     currentDay = Number(button.dataset.day);
-    document.querySelector('#day-theme-select').value = dayPlans[currentDay].theme;
     renderDayTabs(days); renderSelected(); syncMapMarkers();
   }));
 }
@@ -305,7 +303,6 @@ function updateTripDates() {
   document.querySelector('#trip-summary').textContent = `${nights}박 ${days}일`;
   renderDayTabs(days); renderSelected();
 }
-document.querySelector('#day-theme-select').addEventListener('change', (event) => { dayPlans[currentDay].theme = event.target.value; });
 document.addEventListener('click', (event) => {
   if (!event.target.closest('.route-pin')) closePlaceInfo();
 }, true);
