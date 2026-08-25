@@ -65,7 +65,7 @@ document.querySelector('#app').innerHTML = `
       <div id="selected-list" class="selected-list"><div class="empty-state compact-empty">아래 추천 명소에서<br>여행지를 추가해 보세요.</div></div>
     </aside>
     <section class="recommend-dock" aria-label="추천 명소"><div class="dock-heading"><p class="eyebrow">FOR YOUR DAY</p><h3>추천 명소</h3><button class="text-btn">전체 보기</button></div><div id="place-list" class="mini-place-list"></div></section>
-    <div id="report-modal" class="report-modal hidden" role="dialog" aria-modal="true" aria-labelledby="report-title"><div class="report-sheet"><button id="report-close" class="report-close" type="button" aria-label="닫기">×</button><div id="report-content"></div><div class="report-share"><div><strong>이 일정 공유하기</strong><small>QR코드를 스캔하면 같은 일정으로 열립니다.</small></div><img id="report-qr" alt="여행 일정 공유 QR코드"></div></div></div>
+    <div id="report-modal" class="report-modal hidden" role="dialog" aria-modal="true" aria-labelledby="report-title"><div class="report-sheet"><button id="report-close" class="report-close" type="button" aria-label="닫기">×</button><div id="report-content"></div><div id="report-route" class="report-route"></div><div class="report-share"><div><strong>이 일정 공유하기</strong><small>QR코드를 스캔하면 같은 일정으로 열립니다.</small></div><img id="report-qr" alt="여행 일정 공유 QR코드"></div></div></div>
   </main>`;
 
 const list = document.querySelector('#place-list');
@@ -406,7 +406,33 @@ function renderReport() {
   const shareUrl = `${window.location.origin}${window.location.pathname}#trip=${encodeURIComponent(encodeTripState())}`;
   document.querySelector('#report-qr').src = `https://quickchart.io/qr?text=${encodeURIComponent(shareUrl)}&size=180`;
 }
-document.querySelector('#report-button').addEventListener('click', () => { renderReport(); document.querySelector('#report-modal').classList.remove('hidden'); });
+async function loadReportRoutes() {
+  const routeBox = document.querySelector('#report-route');
+  routeBox.innerHTML = '<p class="route-loading">자차 이동 경로를 계산하는 중입니다...</p>';
+  const routes = [];
+  for (const plan of dayPlans) {
+    const dayRoutes = [];
+    for (let index = 0; index < plan.places.length - 1; index += 1) {
+      const from = plan.places[index]; const to = plan.places[index + 1];
+      try {
+        const response = await fetch(`/api/directions15?start=${from.lng},${from.lat}&goal=${to.lng},${to.lat}`);
+        const data = await response.json(); if (!response.ok) throw new Error(data.message);
+        dayRoutes.push({ from, to, ...data });
+      } catch (error) { dayRoutes.push({ from, to, error: error.message }); }
+    }
+    routes.push(dayRoutes);
+  }
+  const allPaths = routes.flatMap((day) => day.flatMap((route) => route.path || []));
+  routeBox.innerHTML = `<div class="report-route-heading"><div><p class="report-kicker">ROUTE SUMMARY</p><h3>여행 경로와 이동시간</h3></div><a class="transit-link" href="${routes.flat()[0] ? `https://map.naver.com/p/directions/${routes.flat()[0].from.lng},${routes.flat()[0].from.lat},${encodeURIComponent(routes.flat()[0].from.name)}/${routes.flat()[0].to.lng},${routes.flat()[0].to.lat},${encodeURIComponent(routes.flat()[0].to.name)}/-/transit` : 'https://map.naver.com'}" target="_blank" rel="noreferrer">대중교통으로 보기 ↗</a></div><div id="report-route-map" class="report-route-map"></div>${routes.map((dayRoutes, dayIndex) => dayRoutes.length ? `<div class="report-segments"><strong>${dayIndex + 1}일차 이동 구간</strong>${dayRoutes.map((route) => route.summary ? `<p>${route.from.name} <span>→</span> ${route.to.name}<b>${Math.round(route.summary.duration / 60000)}분 · ${(route.summary.distance / 1000).toFixed(1)}km</b><a href="https://map.naver.com/p/directions/${route.from.lng},${route.from.lat},${encodeURIComponent(route.from.name)}/${route.to.lng},${route.to.lat},${encodeURIComponent(route.to.name)}/-/transit" target="_blank" rel="noreferrer">대중교통</a></p>` : `<p>${route.from.name} → ${route.to.name}<b>경로를 계산하지 못했습니다.</b></p>`).join('')}</div>` : '').join('')}`;
+  if (window.naver?.maps && allPaths.length) {
+    const routeMap = new naver.maps.Map('report-route-map', { center: new naver.maps.LatLng(allPaths[0][1], allPaths[0][0]), zoom: 11, scaleControl: false, mapDataControl: false });
+    const bounds = new naver.maps.LatLngBounds();
+    routes.flat().forEach((route) => (route.path || []).forEach(([lng, lat]) => bounds.extend(new naver.maps.LatLng(lat, lng))));
+    new naver.maps.Polyline({ map: routeMap, path: allPaths.map(([lng, lat]) => new naver.maps.LatLng(lat, lng)), strokeColor: '#1769e0', strokeWeight: 4, strokeOpacity: .8 });
+    routeMap.fitBounds(bounds, 30);
+  }
+}
+document.querySelector('#report-button').addEventListener('click', async () => { renderReport(); document.querySelector('#report-modal').classList.remove('hidden'); await loadReportRoutes(); });
 document.querySelector('#report-close').addEventListener('click', () => document.querySelector('#report-modal').classList.add('hidden'));
 document.querySelector('#report-modal').addEventListener('click', (event) => { if (event.target.id === 'report-modal') event.currentTarget.classList.add('hidden'); });
 function loadSharedTrip() {
