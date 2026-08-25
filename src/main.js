@@ -33,6 +33,11 @@ function placeImage(place) { return place.image_url || fallbackImages[place.them
 let map;
 let markers = [];
 let infoWindow;
+const dayColors = ['#1769e0', '#e05b38', '#8b5cf6', '#159a70', '#d18b19'];
+function markerIcon(day) {
+  const color = dayColors[(day - 1) % dayColors.length];
+  return { content: `<div class="route-pin" style="--pin-color:${color}"><span>${day}</span></div>`, anchor: new naver.maps.Point(15, 36) };
+}
 
 document.querySelector('#app').innerHTML = `
   <main class="explorer">
@@ -81,10 +86,11 @@ function initMap() {
   });
   infoWindow = new naver.maps.InfoWindow();
   places.forEach((place) => {
-    const marker = new naver.maps.Marker({ map, position: new naver.maps.LatLng(place.lat, place.lng), title: place.name });
+    const marker = new naver.maps.Marker({ map: null, position: new naver.maps.LatLng(place.lat, place.lng), title: place.name });
     markers.push(marker);
     naver.maps.Event.addListener(marker, 'click', () => focusPlace(place, marker));
   });
+  syncMapMarkers();
   naver.maps.Event.addListener(map, 'click', () => {
     const explorer = document.querySelector('.explorer');
     if (!explorer.classList.contains('panels-collapsed')) explorer.classList.add('panels-collapsed');
@@ -102,13 +108,27 @@ function focusPlace(place, marker) {
 let currentDay = 0;
 let dayPlans = [{ places: [], theme: '힐링' }];
 function currentPlaces() { return dayPlans[currentDay].places; }
+function syncMapMarkers() {
+  if (!map || !markers.length || typeof dayPlans === 'undefined') return;
+  markers.forEach((marker, index) => {
+    const place = places[index];
+    const dayIndex = dayPlans.findIndex((plan) => plan.places.some((item) => item.id === place.id));
+    if (dayIndex < 0) {
+      marker.setMap(null);
+      return;
+    }
+    marker.setIcon(markerIcon(dayIndex + 1));
+    marker.setMap(dayIndex === currentDay ? map : null);
+  });
+}
 list.addEventListener('click', (event) => {
   const button = event.target.closest('.place');
   if (!button) return;
   const index = Number(button.dataset.index);
   const place = places[index];
   if (map) focusPlace(place, markers[index]);
-  if (!currentPlaces().some((item) => item.name === place.name)) currentPlaces().push(place);
+  if (!currentPlaces().some((item) => item.id === place.id)) currentPlaces().push(place);
+  syncMapMarkers();
   renderSelected();
 });
 
@@ -123,6 +143,7 @@ document.querySelector('#selected-list').addEventListener('click', (event) => {
   if (!button) return;
   const index = currentPlaces().findIndex((place) => place.name === button.dataset.remove);
   if (index >= 0) currentPlaces().splice(index, 1);
+  syncMapMarkers();
   renderSelected();
 });
 
@@ -136,7 +157,7 @@ function renderDayTabs(days) {
   document.querySelectorAll('.day-tab').forEach((button) => button.addEventListener('click', () => {
     currentDay = Number(button.dataset.day);
     document.querySelector('#day-theme-select').value = dayPlans[currentDay].theme;
-    renderDayTabs(days); renderSelected();
+    renderDayTabs(days); renderSelected(); syncMapMarkers();
   }));
 }
 function updateTripDates() {
@@ -200,7 +221,7 @@ document.querySelector('#minus').addEventListener('click', () => { people = Math
 document.querySelector('#plus').addEventListener('click', () => { people = Math.min(20, people + 1); document.querySelector('#people-count').textContent = `${people}명`; });
 document.querySelectorAll('.chip').forEach((chip) => chip.addEventListener('click', () => { document.querySelectorAll('.chip').forEach((item) => item.classList.remove('active')); chip.classList.add('active'); renderRecommendedPlaces(chip.dataset.theme); }));
 document.querySelectorAll('.transport-btn').forEach((button) => button.addEventListener('click', () => { document.querySelectorAll('.transport-btn').forEach((item) => item.classList.remove('active')); button.classList.add('active'); }));
-document.querySelector('#recommend-btn').addEventListener('click', () => { const selected = currentPlaces(); if (!selected.length) { places.slice(0, 2).forEach((place) => selected.push(place)); renderSelected(); } setStatus(`${dayPlans[currentDay].theme} 테마로 ${currentDay + 1}일차 ${selected.length}곳 코스를 만들었습니다.`); });
+document.querySelector('#recommend-btn').addEventListener('click', () => { const selected = currentPlaces(); if (!selected.length) { places.slice(0, 2).forEach((place) => selected.push(place)); renderSelected(); syncMapMarkers(); } setStatus(`${dayPlans[currentDay].theme} 테마로 ${currentDay + 1}일차 ${selected.length}곳 코스를 만들었습니다.`); });
 
 window.navermap_authFailure = () => setStatus('인증 실패 · Client ID와 허용 도메인을 확인하세요.');
 
