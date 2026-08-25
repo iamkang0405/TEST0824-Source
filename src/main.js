@@ -34,9 +34,9 @@ let map;
 let markers = [];
 let infoWindow;
 const dayColors = ['#1769e0', '#e05b38', '#8b5cf6', '#159a70', '#d18b19'];
-function markerIcon(day) {
+function markerIcon(day, order) {
   const color = dayColors[(day - 1) % dayColors.length];
-  return { content: `<div class="route-pin" style="--pin-color:${color}"><span>${day}</span></div>`, anchor: new naver.maps.Point(15, 36) };
+  return { content: `<div class="route-pin" style="--pin-color:${color}"><span>${order}</span></div>`, anchor: new naver.maps.Point(15, 36) };
 }
 
 document.querySelector('#app').innerHTML = `
@@ -117,7 +117,8 @@ function syncMapMarkers() {
       marker.setMap(null);
       return;
     }
-    marker.setIcon(markerIcon(dayIndex + 1));
+    const order = dayPlans[dayIndex].places.findIndex((item) => item.id === place.id) + 1;
+    marker.setIcon(markerIcon(dayIndex + 1, order));
     marker.setMap(dayIndex === currentDay ? map : null);
   });
 }
