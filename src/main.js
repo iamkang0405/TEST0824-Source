@@ -426,10 +426,11 @@ function updateReportDayPage() {
   document.querySelector('#report-prev').disabled = reportDayIndex === 0;
   document.querySelector('#report-next').disabled = reportDayIndex >= pages.length - 1;
 }
-function moveReportPage(direction) { const pages = document.querySelectorAll('.report-day'); reportDayIndex = Math.max(0, Math.min(pages.length - 1, reportDayIndex + direction)); updateReportDayPage(); }
+function moveReportPage(direction) { const pages = document.querySelectorAll('.report-day'); reportDayIndex = Math.max(0, Math.min(pages.length - 1, reportDayIndex + direction)); updateReportDayPage(); if (reportRoutes.length) renderReportRouteDay(reportDayIndex); }
 document.querySelector('#report-prev').addEventListener('click', () => moveReportPage(-1));
 document.querySelector('#report-next').addEventListener('click', () => moveReportPage(1));
 let reportTouchStartX = null;
+let reportRoutes = [];
 document.querySelector('.report-sheet').addEventListener('touchstart', (event) => { reportTouchStartX = event.touches[0].clientX; }, { passive: true });
 document.querySelector('.report-sheet').addEventListener('touchend', (event) => { if (reportTouchStartX === null) return; const distance = event.changedTouches[0].clientX - reportTouchStartX; if (Math.abs(distance) > 45) moveReportPage(distance < 0 ? 1 : -1); reportTouchStartX = null; }, { passive: true });
 async function loadReportRoutes() {
@@ -452,6 +453,7 @@ async function loadReportRoutes() {
     }
     routes.push(dayRoutes);
   }
+  reportRoutes = routes;
   const allPaths = routes.flatMap((day) => day.flatMap((route) => route.path || []));
   const firstRoute = routes.flat()[0];
   const routeLink = firstRoute ? `https://map.naver.com/p/directions/${firstRoute.from.lng},${firstRoute.from.lat},${encodeURIComponent(firstRoute.from.name)}/${firstRoute.to.lng},${firstRoute.to.lat},${encodeURIComponent(firstRoute.to.name)}/-/${selectedTransport === '대중교통' ? 'transit' : 'car'}` : 'https://map.naver.com';
@@ -461,6 +463,24 @@ async function loadReportRoutes() {
     const bounds = new naver.maps.LatLngBounds();
     routes.flat().forEach((route) => (route.path || []).forEach(([lng, lat]) => bounds.extend(new naver.maps.LatLng(lat, lng))));
     new naver.maps.Polyline({ map: routeMap, path: allPaths.map(([lng, lat]) => new naver.maps.LatLng(lat, lng)), strokeColor: '#1769e0', strokeWeight: 4, strokeOpacity: .8 });
+    routeMap.fitBounds(bounds, 30);
+  }
+  renderReportRouteDay(reportDayIndex);
+}
+function renderReportRouteDay(dayIndex) {
+  const dayRoutes = reportRoutes[dayIndex] || [];
+  const transport = document.querySelector('.transport-btn.active')?.textContent.includes('대중') ? '대중교통' : '자차';
+  const placesForDay = dayPlans[dayIndex]?.places || [];
+  const firstRoute = dayRoutes[0];
+  const routeLink = firstRoute ? routeLinkFor(firstRoute, transport) : 'https://map.naver.com';
+  const routeBox = document.querySelector('#report-route');
+  routeBox.innerHTML = `<div class="report-route-heading"><div><p class="report-kicker">DAY ${dayIndex + 1} ROUTE</p><h3>${dayIndex + 1}일차 여행 경로</h3></div><a class="transit-link" href="${routeLink}" target="_blank" rel="noreferrer">${transport === '대중교통' ? '대중교통으로 보기' : '자동차 경로 보기'} ↗</a></div><div id="report-route-map" class="report-route-map"></div><div class="report-segments"><strong>${dayIndex + 1}일차 이동 구간</strong>${dayRoutes.length ? dayRoutes.map((route) => `<p>${route.from.name} <span>→</span> ${route.to.name}<b>${formatTravelTime(route)} · ${(route.summary.distance / 1000).toFixed(1)}km</b><a href="${routeLinkFor(route, transport)}" target="_blank" rel="noreferrer">${transport}</a></p>`).join('') : '<p>이동 구간이 없습니다.</p>'}</div>`;
+  if (window.naver?.maps && placesForDay.length) {
+    const center = new naver.maps.LatLng(placesForDay[0].lat, placesForDay[0].lng);
+    const routeMap = new naver.maps.Map('report-route-map', { center, zoom: 11, scaleControl: false, mapDataControl: false });
+    const bounds = new naver.maps.LatLngBounds();
+    placesForDay.forEach((place, index) => { const position = new naver.maps.LatLng(place.lat, place.lng); bounds.extend(position); new naver.maps.Marker({ map: routeMap, position, icon: markerIcon(dayIndex + 1, index + 1), title: `${index + 1}. ${place.name}` }); });
+    dayRoutes.forEach((route) => { (route.path || []).forEach(([lng, lat]) => bounds.extend(new naver.maps.LatLng(lat, lng))); new naver.maps.Polyline({ map: routeMap, path: (route.path || []).map(([lng, lat]) => new naver.maps.LatLng(lat, lng)), strokeColor: '#1769e0', strokeWeight: 4, strokeOpacity: .8 }); });
     routeMap.fitBounds(bounds, 30);
   }
 }
