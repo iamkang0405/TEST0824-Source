@@ -65,7 +65,7 @@ document.querySelector('#app').innerHTML = `
       <div id="selected-list" class="selected-list"><div class="empty-state compact-empty">아래 추천 명소에서<br>여행지를 추가해 보세요.</div></div>
     </aside>
     <section class="recommend-dock" aria-label="추천 명소"><div class="dock-heading"><p class="eyebrow">FOR YOUR DAY</p><h3>추천 명소</h3><button class="text-btn">전체 보기</button></div><div id="place-list" class="mini-place-list"></div></section>
-    <div id="report-modal" class="report-modal hidden" role="dialog" aria-modal="true" aria-labelledby="report-title"><div class="report-sheet"><button id="report-close" class="report-close" type="button" aria-label="닫기">×</button><div id="report-content"></div><div id="report-route" class="report-route"></div><div class="report-share"><div><strong>이 일정 공유하기</strong><small>QR코드를 스캔하면 같은 일정으로 열립니다.</small><button id="report-image-button" class="report-image-button" type="button">보고서 이미지 저장</button></div><img id="report-qr" alt="여행 일정 공유 QR코드"></div></div></div>
+    <div id="report-modal" class="report-modal hidden" role="dialog" aria-modal="true" aria-labelledby="report-title"><div class="report-sheet"><button id="report-close" class="report-close" type="button" aria-label="닫기">×</button><div id="report-content"></div><div class="report-page-nav"><button id="report-prev" type="button" aria-label="이전 일차">‹</button><span id="report-page-count">1 / 1</span><button id="report-next" type="button" aria-label="다음 일차">›</button></div><div id="report-route" class="report-route"></div><div class="report-share"><div><strong>이 일정 공유하기</strong><small>QR코드를 스캔하면 같은 일정으로 열립니다.</small><button id="report-image-button" class="report-image-button" type="button">보고서 이미지 저장</button></div><img id="report-qr" alt="여행 일정 공유 QR코드"></div></div></div>
   </main>`;
 
 const list = document.querySelector('#place-list');
@@ -399,13 +399,30 @@ function encodeTripState() {
   return btoa(unescape(encodeURIComponent(JSON.stringify(state))));
 }
 function renderReport() {
+  reportDayIndex = 0;
   const totalPlaces = dayPlans.reduce((sum, plan) => sum + plan.places.length, 0);
   const totalMinutes = dayPlans.reduce((sum, plan) => sum + plan.places.reduce((daySum, place) => daySum + (Number(place.stay_minutes) || 60), 0), 0);
   const start = calendarStart || ''; const report = document.querySelector('#report-content');
-  report.innerHTML = `<p class="report-kicker">POHANG EXPLORER</p><h2 id="report-title">포항 나들이 일정 보고서</h2><p class="report-date">${start ? `${start.replaceAll('-', '.')}부터 ${dayPlans.length}일 일정` : '나만의 포항 여행 일정'}</p><div class="report-stats"><span><b>${totalPlaces}</b><small>선택 장소</small></span><span><b>${Math.round(totalMinutes / 60)}시간</b><small>예상 체류</small></span><span><b>${dayPlans.length}일</b><small>여행 기간</small></span></div>${dayPlans.map((plan, dayIndex) => `<section class="report-day"><h3><i>${dayIndex + 1}</i>${dayIndex + 1}일차 · ${plan.theme}</h3>${plan.places.length ? plan.places.map((place, index) => `<div class="report-place"><b>${index + 1}</b><img src="${placeImage(place)}" alt=""><div><strong>${place.name}</strong><small>${place.category} · ${place.stay_minutes || 60}분</small><p>${place.address || '포항 여행 추천 장소'}</p></div></div>`).join('') : '<p class="report-empty">아직 선택한 여행지가 없습니다.</p>'}</section>`).join('')}<p class="report-tip">여행 조건과 장소를 바꾸면 보고서를 다시 생성할 수 있습니다.</p>`;
+  report.innerHTML = `<p class="report-kicker">POHANG EXPLORER</p><h2 id="report-title">포항 나들이 일정 보고서</h2><p class="report-date">${start ? `${start.replaceAll('-', '.')}부터 ${dayPlans.length}일 일정` : '나만의 포항 여행 일정'}</p><div class="report-stats"><span><b>${totalPlaces}</b><small>선택 장소</small></span><span><b>${Math.round(totalMinutes / 60)}시간</b><small>예상 체류</small></span><span><b>${dayPlans.length}일</b><small>여행 기간</small></span></div>${dayPlans.map((plan, dayIndex) => `<section class="report-day ${dayIndex === 0 ? 'active' : ''}"><h3><i>${dayIndex + 1}</i>${dayIndex + 1}일차 · ${plan.theme}</h3>${plan.places.length ? plan.places.map((place, index) => `<div class="report-place"><b>${index + 1}</b><img src="${placeImage(place)}" alt=""><div><strong>${place.name}</strong><small>${place.category} · ${place.stay_minutes || 60}분</small><p>${place.address || '포항 여행 추천 장소'}</p></div></div>`).join('') : '<p class="report-empty">아직 선택한 여행지가 없습니다.</p>'}</section>`).join('')}<p class="report-tip">여행 조건과 장소를 바꾸면 보고서를 다시 생성할 수 있습니다.</p>`;
+  updateReportDayPage();
   const shareUrl = `${window.location.origin}${window.location.pathname}#trip=${encodeURIComponent(encodeTripState())}&report=image`;
   document.querySelector('#report-qr').src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(shareUrl)}`;
 }
+let reportDayIndex = 0;
+function updateReportDayPage() {
+  const pages = [...document.querySelectorAll('.report-day')];
+  pages.forEach((page, index) => page.classList.toggle('active', index === reportDayIndex));
+  document.querySelector('#report-page-count').textContent = `${reportDayIndex + 1} / ${Math.max(pages.length, 1)}`;
+  document.querySelector('#report-prev').disabled = reportDayIndex === 0;
+  document.querySelector('#report-next').disabled = reportDayIndex >= pages.length - 1;
+}
+function moveReportPage(direction) { const pages = document.querySelectorAll('.report-day'); reportDayIndex = Math.max(0, Math.min(pages.length - 1, reportDayIndex + direction)); updateReportDayPage(); }
+document.querySelector('#report-prev').addEventListener('click', () => moveReportPage(-1));
+document.querySelector('#report-next').addEventListener('click', () => moveReportPage(1));
+let reportTouchStartX = null;
+document.querySelector('.report-sheet').addEventListener('wheel', (event) => { if (Math.abs(event.deltaY) < 12) return; event.preventDefault(); moveReportPage(event.deltaY > 0 ? 1 : -1); }, { passive: false });
+document.querySelector('.report-sheet').addEventListener('touchstart', (event) => { reportTouchStartX = event.touches[0].clientX; }, { passive: true });
+document.querySelector('.report-sheet').addEventListener('touchend', (event) => { if (reportTouchStartX === null) return; const distance = event.changedTouches[0].clientX - reportTouchStartX; if (Math.abs(distance) > 45) moveReportPage(distance < 0 ? 1 : -1); reportTouchStartX = null; }, { passive: true });
 async function loadReportRoutes() {
   const routeBox = document.querySelector('#report-route');
   routeBox.innerHTML = '<p class="route-loading">자차 이동 경로를 계산하는 중입니다...</p>';
