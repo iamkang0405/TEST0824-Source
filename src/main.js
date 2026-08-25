@@ -1,11 +1,27 @@
 import './style.css';
+import placesCsv from '../data/pohang_places_template.csv?raw';
 
-const places = [
-  { name: '영일대해수욕장', category: '바다 · 산책', lat: 36.0566, lng: 129.3787 },
-  { name: '죽도시장', category: '시장 · 먹거리', lat: 36.0357, lng: 129.3657 },
-  { name: '호미곶', category: '일출 · 전망', lat: 36.0769, lng: 129.5689 },
-  { name: '구룡포 근대문화거리', category: '문화 · 산책', lat: 35.9918, lng: 129.5532 }
-];
+function parseCsv(text) {
+  const rows = []; let row = []; let cell = ''; let quoted = false;
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i]; const next = text[i + 1];
+    if (char === '"' && quoted && next === '"') { cell += '"'; i += 1; }
+    else if (char === '"') quoted = !quoted;
+    else if (char === ',' && !quoted) { row.push(cell); cell = ''; }
+    else if ((char === '\n' || char === '\r') && !quoted) { if (char === '\r' && next === '\n') i += 1; row.push(cell); rows.push(row); row = []; cell = ''; }
+    else cell += char;
+  }
+  if (cell || row.length) { row.push(cell); rows.push(row); }
+  const headers = rows.shift();
+  return rows.filter((values) => values.some(Boolean)).map((values) => Object.fromEntries(headers.map((key, index) => [key, values[index] || ''])));
+}
+
+const places = parseCsv(placesCsv).map((place) => ({
+  ...place,
+  category: place.category.replace('·', ' · '),
+  lat: Number(place.latitude), lng: Number(place.longitude),
+  themes: place.theme_tags.split('|'), companions: place.companion_tags.split('|'), weather: place.weather_tags.split('|')
+}));
 
 let map;
 let markers = [];
@@ -40,7 +56,12 @@ document.querySelector('#app').innerHTML = `
   </main>`;
 
 const list = document.querySelector('#place-list');
-list.innerHTML = places.map((place, index) => `<button class="place" data-index="${index}"><span class="place-number">0${index + 1}</span><span><strong>${place.name}</strong><small>${place.category}</small></span><span class="add-place">+</span></button>`).join('');
+function renderRecommendedPlaces(theme = document.querySelector('.chip.active')?.dataset.theme || '힐링') {
+  const filtered = places.filter((place) => place.themes.includes(theme));
+  const visible = filtered.length ? filtered : places;
+  list.innerHTML = visible.map((place) => { const index = places.indexOf(place); return `<button class="place" data-index="${index}"><span class="place-number">${String(index + 1).padStart(2, '0')}</span><span><strong>${place.name}</strong><small>${place.category}</small></span><span class="add-place">+</span></button>`; }).join('');
+}
+renderRecommendedPlaces();
 
 function setStatus(message) { document.querySelector('#status').textContent = message; }
 
@@ -170,7 +191,7 @@ document.querySelectorAll('.peek-tab').forEach((tab) => tab.addEventListener('cl
 let people = 2;
 document.querySelector('#minus').addEventListener('click', () => { people = Math.max(1, people - 1); document.querySelector('#people-count').textContent = `${people}명`; });
 document.querySelector('#plus').addEventListener('click', () => { people = Math.min(20, people + 1); document.querySelector('#people-count').textContent = `${people}명`; });
-document.querySelectorAll('.chip').forEach((chip) => chip.addEventListener('click', () => { document.querySelectorAll('.chip').forEach((item) => item.classList.remove('active')); chip.classList.add('active'); }));
+document.querySelectorAll('.chip').forEach((chip) => chip.addEventListener('click', () => { document.querySelectorAll('.chip').forEach((item) => item.classList.remove('active')); chip.classList.add('active'); renderRecommendedPlaces(chip.dataset.theme); }));
 document.querySelectorAll('.transport-btn').forEach((button) => button.addEventListener('click', () => { document.querySelectorAll('.transport-btn').forEach((item) => item.classList.remove('active')); button.classList.add('active'); }));
 document.querySelector('#recommend-btn').addEventListener('click', () => { const selected = currentPlaces(); if (!selected.length) { places.slice(0, 2).forEach((place) => selected.push(place)); renderSelected(); } setStatus(`${dayPlans[currentDay].theme} 테마로 ${currentDay + 1}일차 ${selected.length}곳 코스를 만들었습니다.`); });
 

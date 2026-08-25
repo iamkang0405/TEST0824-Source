@@ -33,17 +33,23 @@
 
 ## 장소 CSV 작성 방법
 
-장소 데이터는 `data/pohang_places_template.csv`를 복사해 작성합니다. 한 줄에 장소 하나를 입력하면 됩니다. `tags`, `companion`, `transport`처럼 여러 값을 넣는 칸은 `|`로 구분합니다.
+장소 데이터는 `data/pohang_places_template.csv`를 복사해 작성합니다. 한 줄에 장소 하나를 입력하면 됩니다. 여러 테마·인원·날씨·계절·이벤트를 가질 수 있으므로 해당 칸은 `|`로 구분합니다.
 
 중요한 컬럼:
 
-- `theme`: 힐링, 맛집 투어, 액티비티, 문화 중 하나
-- `season`: 사계절, 봄, 여름, 가을, 겨울 또는 조합
-- `event`: 특정 계절/기간 이벤트명
-- `day_priority`: 1일차에 우선 추천할지 나타내는 숫자
-- `indoor_outdoor`: 실내, 실외, 실내·실외
+- `theme_tags`: 힐링, 맛집 투어, 액티비티, 문화 중 하나 이상
+- `companion_tags`: 혼자, 연인, 가족, 동료, 친구 중 하나 이상
+- `weather_tags`: 맑음, 흐림, 비, 눈, 바람, 야간 등
+- `space_type`: 실내, 실외, 실내·실외
+- `season_tags`: 사계절, 봄, 여름, 가을, 겨울 중 하나 이상
+- `event_name`, `event_start`, `event_end`: 계절·기간 이벤트 정보
+- `recommended_day`: 1일차·2일차·3일차 등 우선 추천 일차를 `|`로 구분
+- `priority`: 숫자가 낮을수록 우선 추천
 - `latitude`, `longitude`: 네이버 지도 마커 위치
-- `recommended_stay_min`: 권장 체류 시간(분)
-- `companion`: 어울리는 동행 유형을 `|`로 구분
+- `stay_minutes`: 권장 체류 시간(분)
+- `transport_tags`: 자차, 대중교통, 도보 등
+- `parking`: 주차 정보
 
-날짜를 직접 특정하는 이벤트는 추후 `event_start`, `event_end` 컬럼을 추가해 기간 필터로 확장할 수 있습니다.
+날짜 형식은 반드시 `YYYY-MM-DD`로 입력합니다. 예: `2026-12-31`.
+
+예를 들어 비 오는 날 가족 여행이라면 `companion_tags`에 `가족`, `weather_tags`에 `비`, `space_type`에 `실내`가 포함된 장소를 우선 추천할 수 있습니다.
