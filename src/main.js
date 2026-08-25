@@ -190,7 +190,7 @@ list.addEventListener('click', (event) => {
 function renderSelected() {
 const selected = currentPlaces();
   document.querySelector('#selected-count').textContent = `${selected.length}곳`;
-  document.querySelector('#selected-list').innerHTML = selected.length ? selected.map((place, index) => `<div class="selected-place"><span class="route-number">${index + 1}</span><img class="route-thumb" src="${placeImage(place)}" alt="${place.name}" loading="lazy"><div class="route-copy"><strong>${place.name}</strong><small>${place.category} · ${place.stay_minutes || 60}분</small></div><button data-remove="${place.name}">×</button></div>`).join('') : '<div class="empty-state">이 날짜에 갈 장소를<br>아래 추천 목록에서 추가해 보세요.</div>';
+  document.querySelector('#selected-list').innerHTML = selected.length ? selected.map((place, index) => `<div class="selected-place" draggable="true" data-drag-id="${place.id}"><span class="route-number">${index + 1}</span><img class="route-thumb" src="${placeImage(place)}" alt="${place.name}" loading="lazy"><div class="route-copy"><strong>${place.name}</strong><small>${place.category} · ${place.stay_minutes || 60}분</small></div><button data-remove="${place.name}">×</button></div>`).join('') : '<div class="empty-state">이 날짜에 갈 장소를<br>아래 추천 목록에서 추가해 보세요.</div>';
 }
 
 function addSearchedPlace(item) {
@@ -212,7 +212,7 @@ function addSearchedPlace(item) {
 }
 function renderNaverSearchResults(items = []) {
   const container = document.querySelector('#place-search-results');
-  container.innerHTML = items.length ? items.map((item, index) => `<button class="search-result" type="button" data-search-index="${index}"><span><strong>${item.title.replace(/<[^>]*>/g, '')}</strong><small>${item.category || '장소'} · ${item.roadAddress || item.address || ''}</small></span><b>+</b></button>`).join('') : '<p class="search-empty">검색 결과가 없습니다.</p>';
+  container.innerHTML = items.length ? items.map((item, index) => { const id = `naver-${item.mapx}-${item.mapy}`; const isAdded = currentPlaces().some((place) => place.id === id); return `<button class="search-result ${isAdded ? 'is-added' : ''}" type="button" data-search-index="${index}"><span><strong>${item.title.replace(/<[^>]*>/g, '')}</strong><small>${item.category || '장소'} · ${item.roadAddress || item.address || ''}</small></span><b>${isAdded ? '취소' : '+'}</b></button>`; }).join('') : '<p class="search-empty">검색 결과가 없습니다.</p>';
   container._items = items;
 }
 document.querySelector('#place-search-button').addEventListener('click', async () => {
@@ -230,9 +230,11 @@ document.querySelector('#place-search-results').addEventListener('click', (event
   const button = event.target.closest('[data-search-index]'); const container = document.querySelector('#place-search-results');
   if (!button || !container._items) return;
   const place = addSearchedPlace(container._items[Number(button.dataset.searchIndex)]);
-  if (!currentPlaces().some((item) => item.id === place.id)) currentPlaces().push(place);
-  renderSelected(); syncMapMarkers(); if (map) focusPlace(place, markers[places.indexOf(place)]);
-  button.querySelector('b').textContent = '추가됨'; button.disabled = true;
+  const selected = currentPlaces();
+  const selectedIndex = selected.findIndex((item) => item.id === place.id);
+  if (selectedIndex >= 0) selected.splice(selectedIndex, 1);
+  else { selected.push(place); if (map) focusPlace(place, markers[places.indexOf(place)]); }
+  renderSelected(); renderNaverSearchResults(container._items); syncMapMarkers();
 });
 
 document.querySelector('#selected-list').addEventListener('click', (event) => {
@@ -243,6 +245,34 @@ document.querySelector('#selected-list').addEventListener('click', (event) => {
   if (index >= 0) currentPlaces().splice(index, 1);
   syncMapMarkers();
   renderSelected();
+});
+
+document.querySelector('#selected-list').addEventListener('dragstart', (event) => {
+  const item = event.target.closest('[data-drag-id]');
+  if (!item) return;
+  item.classList.add('is-dragging');
+  event.dataTransfer.effectAllowed = 'move';
+  event.dataTransfer.setData('text/plain', item.dataset.dragId);
+});
+document.querySelector('#selected-list').addEventListener('dragend', (event) => {
+  event.target.closest('[data-drag-id]')?.classList.remove('is-dragging');
+});
+document.querySelector('#selected-list').addEventListener('dragover', (event) => {
+  const target = event.target.closest('[data-drag-id]');
+  if (!target) return;
+  event.preventDefault();
+  const dragging = document.querySelector('.selected-place.is-dragging');
+  if (!dragging || dragging === target) return;
+  const rect = target.getBoundingClientRect();
+  target.parentElement.insertBefore(dragging, event.clientY < rect.top + rect.height / 2 ? target : target.nextSibling);
+});
+document.querySelector('#selected-list').addEventListener('drop', (event) => {
+  event.preventDefault();
+  const selected = currentPlaces();
+  const order = [...document.querySelectorAll('#selected-list [data-drag-id]')].map((item) => item.dataset.dragId);
+  const reordered = order.map((id) => selected.find((place) => place.id === id)).filter(Boolean);
+  selected.splice(0, selected.length, ...reordered);
+  renderSelected(); syncMapMarkers();
 });
 
 function dateDiff(start, end) {
