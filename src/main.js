@@ -329,7 +329,7 @@ function distanceKm(a, b) {
 }
 function travelMinutes(a, b, transport) {
   const km = distanceKm(a, b);
-  return Math.max(5, Math.round(km / (transport === '대중교통' ? 0.35 : 0.58) * 60) + 5);
+  return Math.max(5, Math.round(km / (transport === '대중교통' ? 0.35 : 0.58)) + 5);
 }
 function seasonForDate(date) {
   if (!date) return '사계절';
@@ -411,7 +411,7 @@ function renderReport() {
 let reportDayIndex = 0;
 function formatTravelTime(route) {
   const minutes = Math.round(route.summary.duration / 60000);
-  const safeMinutes = minutes > 360 && route.summary.distance < 100000 ? travelMinutes(route.from, route.to, '자차') : minutes;
+  const safeMinutes = minutes > 120 && route.summary.distance < 50000 ? travelMinutes(route.from, route.to, '자차') : minutes;
   if (safeMinutes < 60) return `${safeMinutes}분`;
   const hours = Math.floor(safeMinutes / 60); const rest = safeMinutes % 60;
   return rest ? `${hours}시간 ${rest}분` : `${hours}시간`;
