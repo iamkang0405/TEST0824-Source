@@ -278,7 +278,77 @@ document.querySelector('#minus').addEventListener('click', () => { people = Math
 document.querySelector('#plus').addEventListener('click', () => { people = Math.min(20, people + 1); document.querySelector('#people-count').textContent = `${people}명`; });
 document.querySelectorAll('.chip').forEach((chip) => chip.addEventListener('click', () => { document.querySelectorAll('.chip').forEach((item) => item.classList.remove('active')); chip.classList.add('active'); renderRecommendedPlaces(chip.dataset.theme); }));
 document.querySelectorAll('.transport-btn').forEach((button) => button.addEventListener('click', () => { document.querySelectorAll('.transport-btn').forEach((item) => item.classList.remove('active')); button.classList.add('active'); }));
-document.querySelector('#recommend-btn').addEventListener('click', () => { const selected = currentPlaces(); if (!selected.length) { places.slice(0, 2).forEach((place) => selected.push(place)); renderSelected(); syncMapMarkers(); } setStatus(`${dayPlans[currentDay].theme} 테마로 ${currentDay + 1}일차 ${selected.length}곳 코스를 만들었습니다.`); });
+function distanceKm(a, b) {
+  const lat = (b.lat - a.lat) * Math.PI / 180; const lng = (b.lng - a.lng) * Math.PI / 180;
+  const x = lng * Math.cos(((a.lat + b.lat) / 2) * Math.PI / 180); const y = lat;
+  return Math.sqrt(x * x + y * y) * 6371;
+}
+function travelMinutes(a, b, transport) {
+  const km = distanceKm(a, b);
+  return Math.max(5, Math.round(km / (transport === '대중교통' ? 0.35 : 0.58) * 60) + 5);
+}
+function seasonForDate(date) {
+  if (!date) return '사계절';
+  const month = Number(date.slice(5, 7));
+  if (month <= 2 || month === 12) return '겨울';
+  if (month <= 5) return '봄';
+  if (month <= 8) return '여름';
+  return '가을';
+}
+function isEventActive(place, date) {
+  return Boolean(place.event_start && place.event_end && date && date >= place.event_start && date <= place.event_end);
+}
+function recommendDayRoute(dayIndex, date, theme, usedIds) {
+  const weather = document.querySelector('#weather').value;
+  const transport = document.querySelector('.transport-btn.active')?.textContent.includes('대중') ? '대중교통' : '자차';
+  const availableMinutes = Number.parseInt(document.querySelector('#duration').value, 10) * 60;
+  const people = Number.parseInt(document.querySelector('#people-count').textContent, 10);
+  const season = seasonForDate(date);
+  const badWeather = ['비', '눈'].includes(weather);
+  const candidates = places.filter((place) => {
+    if (usedIds.has(place.id)) return false;
+    if (place.recommended_day && !place.recommended_day.split('|').includes(String(dayIndex + 1))) return false;
+    if (!place.transport_tags.split('|').includes(transport)) return false;
+    if (badWeather && !place.space_type.includes('실내') && !place.weather.includes(weather)) return false;
+    return true;
+  }).map((place) => {
+    let score = Number(place.priority) || 0;
+    if (place.themes.includes(theme)) score += 8;
+    if (place.weather.includes(weather)) score += 4;
+    if (badWeather && place.space_type.includes('실내')) score += 6;
+    if (place.companions.includes(people === 1 ? '혼자' : people >= 4 ? '가족' : '연인') || place.companions.includes('친구')) score += 2;
+    if (place.season_tags.includes(season) || place.season_tags.includes('사계절')) score += 2;
+    if (isEventActive(place, date)) score += 7;
+    return { place, score };
+  }).sort((a, b) => b.score - a.score);
+  const route = []; let totalMinutes = 0; let previous = null;
+  while (candidates.length && route.length < 5) {
+    const nextIndex = previous ? candidates.reduce((best, item, index) => {
+      const bestValue = candidates[best] ? candidates[best].score - distanceKm(previous, candidates[best].place) * 2 : -Infinity;
+      const value = item.score - distanceKm(previous, item.place) * 2;
+      return value > bestValue ? index : best;
+    }, 0) : 0;
+    const next = candidates.splice(nextIndex, 1)[0].place;
+    const move = previous ? travelMinutes(previous, next, transport) : 0;
+    const stay = Number(next.stay_minutes) || 60;
+    if (route.length && totalMinutes + move + stay > availableMinutes) continue;
+    route.push(next); totalMinutes += move + stay; previous = next;
+  }
+  return route;
+}
+function recommendItinerary() {
+  const startDate = calendarStart || new Date().toISOString().slice(0, 10);
+  const dates = dayPlans.map((_, index) => {
+    const date = new Date(`${startDate}T00:00:00`); date.setDate(date.getDate() + index);
+    return date.toISOString().slice(0, 10);
+  });
+  const theme = document.querySelector('.chip.active')?.dataset.theme || '힐링';
+  const usedIds = new Set();
+  dayPlans.forEach((plan, index) => { plan.theme = theme; plan.places = recommendDayRoute(index, dates[index], theme, usedIds); plan.places.forEach((place) => usedIds.add(place.id)); });
+  currentDay = 0; renderDayTabs(dayPlans.length); renderSelected(); syncMapMarkers();
+  setStatus(`${theme} 테마 기준으로 ${dayPlans.length}일 코스를 추천해 선택한 여행지에 반영했습니다.`);
+}
+document.querySelector('#recommend-btn').addEventListener('click', recommendItinerary);
 
 window.navermap_authFailure = () => setStatus('인증 실패 · Client ID와 허용 도메인을 확인하세요.');
 
