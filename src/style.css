@@ -93,3 +93,6 @@ input, select { width: 100%; padding: 11px; border: 1px solid #dce6f2; border-ra
 .selected-place.is-dragging { opacity: .45; background: #eef4ff; }
 .search-result.is-added { background: #edf4ff; }
 .search-result.is-added b { color: #b34b58; }
+/* 테마 선택 버튼은 좁은 패널에서도 한 줄에 정렬합니다. */
+.planner .chips { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; flex-wrap: nowrap; }
+.planner .chip { min-width: 0; padding: 9px 3px; font-size: 11px; white-space: nowrap; text-align: center; }
