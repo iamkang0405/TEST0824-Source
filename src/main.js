@@ -22,6 +22,13 @@ const places = parseCsv(placesCsv).map((place) => ({
   lat: Number(place.latitude), lng: Number(place.longitude),
   themes: place.theme_tags.split('|'), companions: place.companion_tags.split('|'), weather: place.weather_tags.split('|')
 }));
+const fallbackImages = {
+  '맛집 투어': 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=360&q=80',
+  '문화': 'https://images.unsplash.com/photo-1519501025264-65ba15a82390?auto=format&fit=crop&w=360&q=80',
+  '액티비티': 'https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=360&q=80',
+  '힐링': 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=360&q=80'
+};
+function placeImage(place) { return place.image_url || fallbackImages[place.themes[0]] || fallbackImages.힐링; }
 
 let map;
 let markers = [];
@@ -59,7 +66,7 @@ const list = document.querySelector('#place-list');
 function renderRecommendedPlaces(theme = document.querySelector('.chip.active')?.dataset.theme || '힐링') {
   const filtered = places.filter((place) => place.themes.includes(theme));
   const visible = filtered.length ? filtered : places;
-  list.innerHTML = visible.map((place) => { const index = places.indexOf(place); return `<button class="place" data-index="${index}"><span class="place-number">${String(index + 1).padStart(2, '0')}</span><span><strong>${place.name}</strong><small>${place.category}</small></span><span class="add-place">+</span></button>`; }).join('');
+  list.innerHTML = visible.map((place) => { const index = places.indexOf(place); return `<button class="place" data-index="${index}"><img class="place-thumb" src="${placeImage(place)}" alt="${place.name}" loading="lazy"><span class="place-copy"><strong>${place.name}</strong><small>${place.category} · ${place.stay_minutes || 60}분</small></span><span class="add-place">+</span></button>`; }).join('');
 }
 renderRecommendedPlaces();
 
@@ -108,7 +115,7 @@ list.addEventListener('click', (event) => {
 function renderSelected() {
 const selected = currentPlaces();
   document.querySelector('#selected-count').textContent = `${selected.length}곳`;
-  document.querySelector('#selected-list').innerHTML = selected.length ? selected.map((place, index) => `<div class="selected-place"><span class="route-number">${index + 1}</span><div><strong>${place.name}</strong><small>${place.category}</small></div><button data-remove="${place.name}">×</button></div>`).join('') : '<div class="empty-state">이 날짜에 갈 장소를<br>아래 추천 목록에서 추가해 보세요.</div>';
+  document.querySelector('#selected-list').innerHTML = selected.length ? selected.map((place, index) => `<div class="selected-place"><span class="route-number">${index + 1}</span><img class="route-thumb" src="${placeImage(place)}" alt="${place.name}" loading="lazy"><div class="route-copy"><strong>${place.name}</strong><small>${place.category} · ${place.stay_minutes || 60}분</small></div><button data-remove="${place.name}">×</button></div>`).join('') : '<div class="empty-state">이 날짜에 갈 장소를<br>아래 추천 목록에서 추가해 보세요.</div>';
 }
 
 document.querySelector('#selected-list').addEventListener('click', (event) => {
