@@ -439,7 +439,7 @@ document.querySelector('#report-image-button').addEventListener('click', async (
   const button = document.querySelector('#report-image-button'); button.disabled = true; button.textContent = '이미지 만드는 중...';
   try {
     if (!window.html2canvas) await new Promise((resolve, reject) => { const script = document.createElement('script'); script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'; script.onload = resolve; script.onerror = reject; document.head.appendChild(script); });
-    const canvas = await window.html2canvas(document.querySelector('.report-sheet'), { backgroundColor: '#ffffff', scale: 2, useCORS: true, ignoreElements: (element) => element.classList.contains('report-close') });
+    const canvas = await window.html2canvas(document.querySelector('.report-sheet'), { backgroundColor: '#ffffff', scale: 2, useCORS: true, ignoreElements: (element) => element.classList.contains('report-close'), onclone: (clonedDocument) => { const clonedSheet = clonedDocument.querySelector('.report-sheet'); clonedSheet.style.maxHeight = 'none'; clonedSheet.style.height = 'auto'; clonedSheet.style.overflow = 'visible'; clonedSheet.style.position = 'relative'; clonedSheet.querySelector('.report-close')?.remove(); } });
     const link = document.createElement('a'); link.download = 'pohang-itinerary-report.png'; link.href = canvas.toDataURL('image/png'); link.click();
   } catch { setStatus('보고서 이미지를 만들지 못했습니다. 잠시 후 다시 시도해 주세요.'); }
   button.disabled = false; button.textContent = '보고서 이미지 저장';
