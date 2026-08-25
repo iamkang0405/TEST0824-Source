@@ -7,7 +7,7 @@ export default async function handler(request, response) {
   const url = `https://naveropenapi.apigw.ntruss.com/map-direction-15/v1/driving?start=${encodeURIComponent(start)}&goal=${encodeURIComponent(goal)}&option=traoptimal&lang=ko`;
   const result = await fetch(url, { headers: { 'x-ncp-apigw-api-key-id': clientId, 'x-ncp-apigw-api-key': clientSecret } });
   const data = await result.json();
-  if (!result.ok || data.code !== 0) return response.status(result.ok ? 422 : result.status).json({ message: data.message || '경로를 찾지 못했습니다.' });
+  if (!result.ok || String(data.code) !== '0') return response.status(result.ok ? 422 : result.status).json({ message: data.message || data.errorMessage || `Directions 15 오류(${data.code ?? result.status})` });
   const route = data.route?.traoptimal?.[0];
   return response.status(200).json({ summary: route.summary, path: route.path });
 }

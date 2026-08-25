@@ -395,7 +395,7 @@ function recommendItinerary() {
 document.querySelector('#recommend-btn').addEventListener('click', recommendItinerary);
 
 function encodeTripState() {
-  const state = { days: dayPlans.map((plan) => ({ theme: plan.theme, places: plan.places.map((place) => ({ ...place })) })) };
+  const state = { days: dayPlans.map((plan) => ({ theme: plan.theme, places: plan.places.map((place) => places.some((item) => item.id === place.id) ? place.id : { id: place.id, name: place.name, category: place.category, address: place.address, lat: place.lat, lng: place.lng, stay_minutes: place.stay_minutes, themes: place.themes, companions: place.companions, weather: place.weather, space_type: place.space_type }) })) };
   return btoa(unescape(encodeURIComponent(JSON.stringify(state))));
 }
 function renderReport() {
@@ -404,7 +404,7 @@ function renderReport() {
   const start = calendarStart || ''; const report = document.querySelector('#report-content');
   report.innerHTML = `<p class="report-kicker">POHANG EXPLORER</p><h2 id="report-title">포항 나들이 일정 보고서</h2><p class="report-date">${start ? `${start.replaceAll('-', '.')}부터 ${dayPlans.length}일 일정` : '나만의 포항 여행 일정'}</p><div class="report-stats"><span><b>${totalPlaces}</b><small>선택 장소</small></span><span><b>${Math.round(totalMinutes / 60)}시간</b><small>예상 체류</small></span><span><b>${dayPlans.length}일</b><small>여행 기간</small></span></div>${dayPlans.map((plan, dayIndex) => `<section class="report-day"><h3><i>${dayIndex + 1}</i>${dayIndex + 1}일차 · ${plan.theme}</h3>${plan.places.length ? plan.places.map((place, index) => `<div class="report-place"><b>${index + 1}</b><img src="${placeImage(place)}" alt=""><div><strong>${place.name}</strong><small>${place.category} · ${place.stay_minutes || 60}분</small><p>${place.address || '포항 여행 추천 장소'}</p></div></div>`).join('') : '<p class="report-empty">아직 선택한 여행지가 없습니다.</p>'}</section>`).join('')}<p class="report-tip">여행 조건과 장소를 바꾸면 보고서를 다시 생성할 수 있습니다.</p>`;
   const shareUrl = `${window.location.origin}${window.location.pathname}#trip=${encodeURIComponent(encodeTripState())}`;
-  document.querySelector('#report-qr').src = `https://quickchart.io/qr?text=${encodeURIComponent(shareUrl)}&size=180`;
+  document.querySelector('#report-qr').src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(shareUrl)}`;
 }
 async function loadReportRoutes() {
   const routeBox = document.querySelector('#report-route');
@@ -440,8 +440,8 @@ function loadSharedTrip() {
   if (!encoded) return;
   try {
     const state = JSON.parse(decodeURIComponent(escape(atob(encoded))));
-    const sharedPlaces = state.days.flatMap((day) => day.places).filter((place) => !places.some((item) => item.id === place.id));
-    places.push(...sharedPlaces); dayPlans = state.days.map((day) => ({ theme: day.theme, places: day.places })); currentDay = 0;
+    const sharedPlaces = state.days.flatMap((day) => day.places).filter((place) => typeof place !== 'string' && !places.some((item) => item.id === place.id));
+    places.push(...sharedPlaces); dayPlans = state.days.map((day) => ({ theme: day.theme, places: day.places.map((place) => typeof place === 'string' ? places.find((item) => item.id === place) : place).filter(Boolean) })); currentDay = 0;
     renderDayTabs(dayPlans.length); renderSelected(); setStatus('공유받은 여행 일정을 불러왔습니다.');
   } catch { setStatus('공유 일정 링크를 읽지 못했습니다.'); }
 }
