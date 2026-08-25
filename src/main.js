@@ -403,7 +403,7 @@ function renderReport() {
   const totalMinutes = dayPlans.reduce((sum, plan) => sum + plan.places.reduce((daySum, place) => daySum + (Number(place.stay_minutes) || 60), 0), 0);
   const start = calendarStart || ''; const report = document.querySelector('#report-content');
   report.innerHTML = `<p class="report-kicker">POHANG EXPLORER</p><h2 id="report-title">포항 나들이 일정 보고서</h2><p class="report-date">${start ? `${start.replaceAll('-', '.')}부터 ${dayPlans.length}일 일정` : '나만의 포항 여행 일정'}</p><div class="report-stats"><span><b>${totalPlaces}</b><small>선택 장소</small></span><span><b>${Math.round(totalMinutes / 60)}시간</b><small>예상 체류</small></span><span><b>${dayPlans.length}일</b><small>여행 기간</small></span></div>${dayPlans.map((plan, dayIndex) => `<section class="report-day"><h3><i>${dayIndex + 1}</i>${dayIndex + 1}일차 · ${plan.theme}</h3>${plan.places.length ? plan.places.map((place, index) => `<div class="report-place"><b>${index + 1}</b><img src="${placeImage(place)}" alt=""><div><strong>${place.name}</strong><small>${place.category} · ${place.stay_minutes || 60}분</small><p>${place.address || '포항 여행 추천 장소'}</p></div></div>`).join('') : '<p class="report-empty">아직 선택한 여행지가 없습니다.</p>'}</section>`).join('')}<p class="report-tip">여행 조건과 장소를 바꾸면 보고서를 다시 생성할 수 있습니다.</p>`;
-  const shareUrl = `${window.location.origin}${window.location.pathname}#trip=${encodeURIComponent(encodeTripState())}`;
+  const shareUrl = `${window.location.origin}${window.location.pathname}#trip=${encodeURIComponent(encodeTripState())}&report=image`;
   document.querySelector('#report-qr').src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(shareUrl)}`;
 }
 async function loadReportRoutes() {
@@ -452,6 +452,7 @@ function loadSharedTrip() {
     const sharedPlaces = state.days.flatMap((day) => day.places).filter((place) => typeof place !== 'string' && !places.some((item) => item.id === place.id));
     places.push(...sharedPlaces); dayPlans = state.days.map((day) => ({ theme: day.theme, places: day.places.map((place) => typeof place === 'string' ? places.find((item) => item.id === place) : place).filter(Boolean) })); currentDay = 0;
     renderDayTabs(dayPlans.length); renderSelected(); setStatus('공유받은 여행 일정을 불러왔습니다.');
+    if (new URLSearchParams(window.location.hash.slice(1)).get('report') === 'image') window.setTimeout(() => document.querySelector('#report-button').click(), 1200);
   } catch { setStatus('공유 일정 링크를 읽지 못했습니다.'); }
 }
 loadSharedTrip();
