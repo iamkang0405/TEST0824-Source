@@ -57,9 +57,8 @@ document.querySelector('#app').innerHTML = `
       <div id="day-tabs" class="day-tabs"><button class="day-tab active" data-day="0">1일차</button></div>
       <div class="day-theme"><span>이 날의 테마</span><select id="day-theme-select"><option>힐링</option><option>맛집 투어</option><option>액티비티</option><option>문화</option></select></div>
       <div id="selected-list" class="selected-list"><div class="empty-state compact-empty">아래 추천 명소에서<br>여행지를 추가해 보세요.</div></div>
-      <div class="recommend-header"><div><p class="eyebrow">FOR YOUR DAY</p><h3>추천 명소</h3></div><button class="text-btn">전체 보기</button></div>
-      <div id="place-list" class="mini-place-list"></div>
     </aside>
+    <section class="recommend-dock" aria-label="추천 명소"><div class="dock-heading"><p class="eyebrow">FOR YOUR DAY</p><h3>추천 명소</h3><button class="text-btn">전체 보기</button></div><div id="place-list" class="mini-place-list"></div></section>
   </main>`;
 
 const list = document.querySelector('#place-list');
