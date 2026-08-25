@@ -48,6 +48,7 @@ document.querySelector('#app').innerHTML = `
       <label>인원</label><div class="people"><button class="counter" id="minus">−</button><strong id="people-count">2명</strong><button class="counter" id="plus">+</button></div>
       <label>여행 기간 <span class="date-help" id="trip-summary">날짜를 선택해 주세요</span></label><button class="calendar-trigger" id="calendar-trigger">📅 여행 날짜 선택</button><div id="calendar" class="calendar hidden"></div>
       <div class="time-row"><div><label for="start-time">시작 시간</label><input id="start-time" type="time" value="10:00" /></div><div><label for="duration">가용 시간</label><select id="duration"><option>4시간</option><option>6시간</option><option>8시간</option></select></div></div>
+      <div class="condition-row"><div><label for="weather">날씨</label><select id="weather"><option>맑음</option><option>흐림</option><option>비</option><option>눈</option><option>바람</option></select></div></div>
       <label>이동 수단</label><div class="transport"><button class="transport-btn active">🚗 자차</button><button class="transport-btn">🚌 대중교통</button></div>
       <button class="primary-btn" id="recommend-btn">이 조건으로 코스 추천받기 <span>→</span></button>
       <p id="status" class="status">네이버 지도를 불러오는 중입니다.</p>
