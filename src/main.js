@@ -65,7 +65,7 @@ document.querySelector('#app').innerHTML = `
       <div id="selected-list" class="selected-list"><div class="empty-state compact-empty">아래 추천 명소에서<br>여행지를 추가해 보세요.</div></div>
     </aside>
     <section class="recommend-dock" aria-label="추천 명소"><div class="dock-heading"><p class="eyebrow">FOR YOUR DAY</p><h3>추천 명소</h3><button class="text-btn">전체 보기</button></div><div id="place-list" class="mini-place-list"></div></section>
-    <div id="report-modal" class="report-modal hidden" role="dialog" aria-modal="true" aria-labelledby="report-title"><div class="report-sheet"><button id="report-close" class="report-close" type="button" aria-label="닫기">×</button><div id="report-content"></div><div id="report-route" class="report-route"></div><div class="report-share"><div><strong>이 일정 공유하기</strong><small>QR코드를 스캔하면 같은 일정으로 열립니다.</small></div><img id="report-qr" alt="여행 일정 공유 QR코드"></div></div></div>
+    <div id="report-modal" class="report-modal hidden" role="dialog" aria-modal="true" aria-labelledby="report-title"><div class="report-sheet"><button id="report-close" class="report-close" type="button" aria-label="닫기">×</button><div id="report-content"></div><div id="report-route" class="report-route"></div><div class="report-share"><div><strong>이 일정 공유하기</strong><small>QR코드를 스캔하면 같은 일정으로 열립니다.</small><button id="report-image-button" class="report-image-button" type="button">보고서 이미지 저장</button></div><img id="report-qr" alt="여행 일정 공유 QR코드"></div></div></div>
   </main>`;
 
 const list = document.querySelector('#place-list');
@@ -435,6 +435,15 @@ async function loadReportRoutes() {
 document.querySelector('#report-button').addEventListener('click', async () => { renderReport(); document.querySelector('#report-modal').classList.remove('hidden'); await loadReportRoutes(); });
 document.querySelector('#report-close').addEventListener('click', () => document.querySelector('#report-modal').classList.add('hidden'));
 document.querySelector('#report-modal').addEventListener('click', (event) => { if (event.target.id === 'report-modal') event.currentTarget.classList.add('hidden'); });
+document.querySelector('#report-image-button').addEventListener('click', async () => {
+  const button = document.querySelector('#report-image-button'); button.disabled = true; button.textContent = '이미지 만드는 중...';
+  try {
+    if (!window.html2canvas) await new Promise((resolve, reject) => { const script = document.createElement('script'); script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'; script.onload = resolve; script.onerror = reject; document.head.appendChild(script); });
+    const canvas = await window.html2canvas(document.querySelector('.report-sheet'), { backgroundColor: '#ffffff', scale: 2, useCORS: true, ignoreElements: (element) => element.classList.contains('report-close') });
+    const link = document.createElement('a'); link.download = 'pohang-itinerary-report.png'; link.href = canvas.toDataURL('image/png'); link.click();
+  } catch { setStatus('보고서 이미지를 만들지 못했습니다. 잠시 후 다시 시도해 주세요.'); }
+  button.disabled = false; button.textContent = '보고서 이미지 저장';
+});
 function loadSharedTrip() {
   const encoded = new URLSearchParams(window.location.hash.slice(1)).get('trip');
   if (!encoded) return;

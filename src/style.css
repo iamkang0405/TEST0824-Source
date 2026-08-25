@@ -84,3 +84,4 @@ input, select { width: 100%; padding: 11px; border: 1px solid #dce6f2; border-ra
 .recommend-dock .mini-place-list::-webkit-scrollbar { display: none; }
 .recommend-dock .place { flex: 0 0 calc((100% - 32px) / 5); }
 @media (max-width: 1100px) and (min-width: 681px) { .panel { bottom: 120px; } .recommend-dock .place { flex-basis: calc((100% - 24px) / 4); } }
+.report-image-button { margin-top: 12px; padding: 8px 11px; border: 0; border-radius: 8px; background: #123b73; color: #fff; font-size: 10px; font-weight: 800; cursor: pointer; }.report-image-button:disabled { opacity: .6; cursor: wait; }
