@@ -59,6 +59,7 @@ document.querySelector('#app').innerHTML = `
     </aside>
     <aside class="results panel">
       <div class="panel-heading"><div><p class="eyebrow">MY TRIP</p><h2>내가 선택한 여행지</h2></div><span class="count" id="selected-count">0곳</span></div>
+      <div class="place-search"><label for="place-search-input">여행지 직접 추가</label><div class="place-search-row"><input id="place-search-input" type="search" placeholder="포항 장소 검색" autocomplete="off"><button id="place-search-button" type="button">검색</button></div><div id="place-search-results" class="place-search-results" aria-live="polite"></div></div>
       <div id="day-tabs" class="day-tabs"><button class="day-tab active" data-day="0">1일차</button></div>
       <div class="day-theme"><span>이 날의 테마</span><select id="day-theme-select"><option>힐링</option><option>맛집 투어</option><option>액티비티</option><option>문화</option></select></div>
       <div id="selected-list" class="selected-list"><div class="empty-state compact-empty">아래 추천 명소에서<br>여행지를 추가해 보세요.</div></div>
@@ -190,6 +191,48 @@ const selected = currentPlaces();
   document.querySelector('#selected-count').textContent = `${selected.length}곳`;
   document.querySelector('#selected-list').innerHTML = selected.length ? selected.map((place, index) => `<div class="selected-place"><span class="route-number">${index + 1}</span><img class="route-thumb" src="${placeImage(place)}" alt="${place.name}" loading="lazy"><div class="route-copy"><strong>${place.name}</strong><small>${place.category} · ${place.stay_minutes || 60}분</small></div><button data-remove="${place.name}">×</button></div>`).join('') : '<div class="empty-state">이 날짜에 갈 장소를<br>아래 추천 목록에서 추가해 보세요.</div>';
 }
+
+function addSearchedPlace(item) {
+  const place = {
+    id: `naver-${item.mapx}-${item.mapy}`,
+    name: item.title.replace(/<[^>]*>/g, ''), category: item.category || '검색 장소',
+    address: item.roadAddress || item.address || '', description: '네이버 지역 검색 결과',
+    lat: Number(item.mapy) / 10000000, lng: Number(item.mapx) / 10000000,
+    themes: ['힐링'], companions: ['혼자', '연인', '가족', '친구', '동료'], weather: ['맑음', '흐림', '비', '눈'],
+    space_type: '실내·실외', stay_minutes: 60, image_url: '', official_url: item.link || ''
+  };
+  const existingIndex = places.findIndex((candidate) => candidate.id === place.id);
+  if (existingIndex >= 0) return places[existingIndex];
+  places.push(place);
+  const marker = new naver.maps.Marker({ position: new naver.maps.LatLng(place.lat, place.lng), map: null, title: place.name });
+  naver.maps.Event.addListener(marker, 'click', () => focusPlace(place, marker));
+  markers.push(marker);
+  return place;
+}
+function renderNaverSearchResults(items = []) {
+  const container = document.querySelector('#place-search-results');
+  container.innerHTML = items.length ? items.map((item, index) => `<button class="search-result" type="button" data-search-index="${index}"><span><strong>${item.title.replace(/<[^>]*>/g, '')}</strong><small>${item.category || '장소'} · ${item.roadAddress || item.address || ''}</small></span><b>+</b></button>`).join('') : '<p class="search-empty">검색 결과가 없습니다.</p>';
+  container._items = items;
+}
+document.querySelector('#place-search-button').addEventListener('click', async () => {
+  const input = document.querySelector('#place-search-input'); const query = input.value.trim();
+  if (!query) return;
+  const container = document.querySelector('#place-search-results'); container.innerHTML = '<p class="search-empty">네이버에서 검색 중입니다...</p>';
+  try {
+    const response = await fetch(`/api/search-local?query=${encodeURIComponent(query)}`); const data = await response.json();
+    if (!response.ok) throw new Error(data.message || '검색에 실패했습니다.');
+    renderNaverSearchResults(data.items);
+  } catch (error) { container.innerHTML = `<p class="search-empty">${error.message}</p>`; }
+});
+document.querySelector('#place-search-input').addEventListener('keydown', (event) => { if (event.key === 'Enter') document.querySelector('#place-search-button').click(); });
+document.querySelector('#place-search-results').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-search-index]'); const container = document.querySelector('#place-search-results');
+  if (!button || !container._items) return;
+  const place = addSearchedPlace(container._items[Number(button.dataset.searchIndex)]);
+  if (!currentPlaces().some((item) => item.id === place.id)) currentPlaces().push(place);
+  renderSelected(); syncMapMarkers(); if (map) focusPlace(place, markers[places.indexOf(place)]);
+  button.querySelector('b').textContent = '추가됨'; button.disabled = true;
+});
 
 document.querySelector('#selected-list').addEventListener('click', (event) => {
   closePlaceInfo();
