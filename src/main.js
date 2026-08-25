@@ -409,6 +409,16 @@ function renderReport() {
   document.querySelector('#report-qr').src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(shareUrl)}`;
 }
 let reportDayIndex = 0;
+function formatTravelTime(route) {
+  const minutes = Math.round(route.summary.duration / 60000);
+  const safeMinutes = minutes > 360 && route.summary.distance < 100000 ? travelMinutes(route.from, route.to, '자차') : minutes;
+  if (safeMinutes < 60) return `${safeMinutes}분`;
+  const hours = Math.floor(safeMinutes / 60); const rest = safeMinutes % 60;
+  return rest ? `${hours}시간 ${rest}분` : `${hours}시간`;
+}
+function routeLinkFor(route, transport) {
+  return `https://map.naver.com/p/directions/${route.from.lng},${route.from.lat},${encodeURIComponent(route.from.name)}/${route.to.lng},${route.to.lat},${encodeURIComponent(route.to.name)}/-/${transport === '대중교통' ? 'transit' : 'car'}`;
+}
 function updateReportDayPage() {
   const pages = [...document.querySelectorAll('.report-day')];
   pages.forEach((page, index) => page.classList.toggle('active', index === reportDayIndex));
@@ -424,6 +434,7 @@ document.querySelector('.report-sheet').addEventListener('touchstart', (event) =
 document.querySelector('.report-sheet').addEventListener('touchend', (event) => { if (reportTouchStartX === null) return; const distance = event.changedTouches[0].clientX - reportTouchStartX; if (Math.abs(distance) > 45) moveReportPage(distance < 0 ? 1 : -1); reportTouchStartX = null; }, { passive: true });
 async function loadReportRoutes() {
   const routeBox = document.querySelector('#report-route');
+  const selectedTransport = document.querySelector('.transport-btn.active')?.textContent.includes('대중') ? '대중교통' : '자차';
   routeBox.innerHTML = '<p class="route-loading">자차 이동 경로를 계산하는 중입니다...</p>';
   const routes = [];
   for (const plan of dayPlans) {
@@ -442,7 +453,9 @@ async function loadReportRoutes() {
     routes.push(dayRoutes);
   }
   const allPaths = routes.flatMap((day) => day.flatMap((route) => route.path || []));
-  routeBox.innerHTML = `<div class="report-route-heading"><div><p class="report-kicker">ROUTE SUMMARY</p><h3>여행 경로와 이동시간</h3></div><a class="transit-link" href="${routes.flat()[0] ? `https://map.naver.com/p/directions/${routes.flat()[0].from.lng},${routes.flat()[0].from.lat},${encodeURIComponent(routes.flat()[0].from.name)}/${routes.flat()[0].to.lng},${routes.flat()[0].to.lat},${encodeURIComponent(routes.flat()[0].to.name)}/-/transit` : 'https://map.naver.com'}" target="_blank" rel="noreferrer">대중교통으로 보기 ↗</a></div><div id="report-route-map" class="report-route-map"></div>${routes.map((dayRoutes, dayIndex) => dayRoutes.length ? `<div class="report-segments"><strong>${dayIndex + 1}일차 이동 구간</strong>${dayRoutes.map((route) => route.summary ? `<p>${route.from.name} <span>→</span> ${route.to.name}<b>${Math.round(route.summary.duration / 60000)}분 · ${(route.summary.distance / 1000).toFixed(1)}km</b><a href="https://map.naver.com/p/directions/${route.from.lng},${route.from.lat},${encodeURIComponent(route.from.name)}/${route.to.lng},${route.to.lat},${encodeURIComponent(route.to.name)}/-/transit" target="_blank" rel="noreferrer">대중교통</a></p>` : `<p>${route.from.name} → ${route.to.name}<b>경로를 계산하지 못했습니다.</b></p>`).join('')}</div>` : '').join('')}`;
+  const firstRoute = routes.flat()[0];
+  const routeLink = firstRoute ? `https://map.naver.com/p/directions/${firstRoute.from.lng},${firstRoute.from.lat},${encodeURIComponent(firstRoute.from.name)}/${firstRoute.to.lng},${firstRoute.to.lat},${encodeURIComponent(firstRoute.to.name)}/-/${selectedTransport === '대중교통' ? 'transit' : 'car'}` : 'https://map.naver.com';
+  routeBox.innerHTML = `<div class="report-route-heading"><div><p class="report-kicker">ROUTE SUMMARY</p><h3>여행 경로와 이동시간</h3></div><a class="transit-link" href="${routeLink}" target="_blank" rel="noreferrer">${selectedTransport === '대중교통' ? '대중교통으로 보기' : '자동차 경로 보기'} ↗</a></div><div id="report-route-map" class="report-route-map"></div>${routes.map((dayRoutes, dayIndex) => dayRoutes.length ? `<div class="report-segments"><strong>${dayIndex + 1}일차 이동 구간</strong>${dayRoutes.map((route) => route.summary ? `<p>${route.from.name} <span>→</span> ${route.to.name}<b>${formatTravelTime(route)} · ${(route.summary.distance / 1000).toFixed(1)}km</b><a href="${routeLinkFor(route, selectedTransport)}" target="_blank" rel="noreferrer">${selectedTransport}</a></p>` : `<p>${route.from.name} → ${route.to.name}<b>경로를 계산하지 못했습니다.</b></p>`).join('')}</div>` : '').join('')}`;
   if (window.naver?.maps && allPaths.length) {
     const routeMap = new naver.maps.Map('report-route-map', { center: new naver.maps.LatLng(allPaths[0][1], allPaths[0][0]), zoom: 11, scaleControl: false, mapDataControl: false });
     const bounds = new naver.maps.LatLngBounds();
