@@ -434,7 +434,10 @@ async function loadReportRoutes() {
         const response = await fetch(`/api/directions15?start=${from.lng},${from.lat}&goal=${to.lng},${to.lat}`);
         const data = await response.json(); if (!response.ok) throw new Error(data.message);
         dayRoutes.push({ from, to, ...data });
-      } catch (error) { dayRoutes.push({ from, to, error: error.message }); }
+      } catch (error) {
+        const distance = Math.round(distanceKm(from, to) * 1000);
+        dayRoutes.push({ from, to, fallback: true, summary: { distance, duration: travelMinutes(from, to, '자차') * 60000 }, path: [[from.lng, from.lat], [to.lng, to.lat]], error: error.message });
+      }
     }
     routes.push(dayRoutes);
   }
