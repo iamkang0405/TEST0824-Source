@@ -151,7 +151,8 @@ function syncMapMarkers() {
     const radius = group.length > 1 ? 0.00035 : 0;
     entry.marker.setPosition(new naver.maps.LatLng(entry.place.lat + Math.sin(angle) * radius, entry.place.lng + Math.cos(angle) * radius));
     entry.marker.setIcon(markerIcon(entry.dayIndex + 1, entry.order));
-    entry.marker.setMap(entry.dayIndex === currentDay ? map : null);
+    // 일차를 바꿔도 전체 여행 경로의 핀은 계속 표시하고 색상으로 일차를 구분합니다.
+    entry.marker.setMap(map);
   });
 }
 list.addEventListener('click', (event) => {
