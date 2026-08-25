@@ -58,13 +58,14 @@ document.querySelector('#app').innerHTML = `
       <p id="status" class="status">네이버 지도를 불러오는 중입니다.</p>
     </aside>
     <aside class="results panel">
-      <div class="panel-heading"><div><p class="eyebrow">MY TRIP</p><h2>내가 선택한 여행지</h2></div><span class="count" id="selected-count">0곳</span></div>
+      <div class="panel-heading"><div><p class="eyebrow">MY TRIP</p><h2>내가 선택한 여행지</h2></div><div class="heading-actions"><span class="count" id="selected-count">0곳</span><button id="report-button" class="report-button" type="button">보고서</button></div></div>
       <div class="place-search"><label for="place-search-input">여행지 직접 추가</label><div class="place-search-row"><input id="place-search-input" type="search" placeholder="포항 장소 검색" autocomplete="off"><button id="place-search-button" type="button">검색</button></div><div id="place-search-results" class="place-search-results" aria-live="polite"></div></div>
       <div id="day-tabs" class="day-tabs"><button class="day-tab active" data-day="0">1일차</button></div>
       <div class="day-theme"><span>이 날의 테마</span><select id="day-theme-select"><option>힐링</option><option>맛집 투어</option><option>액티비티</option><option>문화</option></select></div>
       <div id="selected-list" class="selected-list"><div class="empty-state compact-empty">아래 추천 명소에서<br>여행지를 추가해 보세요.</div></div>
     </aside>
     <section class="recommend-dock" aria-label="추천 명소"><div class="dock-heading"><p class="eyebrow">FOR YOUR DAY</p><h3>추천 명소</h3><button class="text-btn">전체 보기</button></div><div id="place-list" class="mini-place-list"></div></section>
+    <div id="report-modal" class="report-modal hidden" role="dialog" aria-modal="true" aria-labelledby="report-title"><div class="report-sheet"><button id="report-close" class="report-close" type="button" aria-label="닫기">×</button><div id="report-content"></div><div class="report-share"><div><strong>이 일정 공유하기</strong><small>QR코드를 스캔하면 같은 일정으로 열립니다.</small></div><img id="report-qr" alt="여행 일정 공유 QR코드"></div></div></div>
   </main>`;
 
 const list = document.querySelector('#place-list');
@@ -392,6 +393,33 @@ function recommendItinerary() {
   setStatus(`${theme} 테마 기준으로 ${dayPlans.length}일 코스를 추천해 선택한 여행지에 반영했습니다.`);
 }
 document.querySelector('#recommend-btn').addEventListener('click', recommendItinerary);
+
+function encodeTripState() {
+  const state = { days: dayPlans.map((plan) => ({ theme: plan.theme, places: plan.places.map((place) => ({ ...place })) })) };
+  return btoa(unescape(encodeURIComponent(JSON.stringify(state))));
+}
+function renderReport() {
+  const totalPlaces = dayPlans.reduce((sum, plan) => sum + plan.places.length, 0);
+  const totalMinutes = dayPlans.reduce((sum, plan) => sum + plan.places.reduce((daySum, place) => daySum + (Number(place.stay_minutes) || 60), 0), 0);
+  const start = calendarStart || ''; const report = document.querySelector('#report-content');
+  report.innerHTML = `<p class="report-kicker">POHANG EXPLORER</p><h2 id="report-title">포항 나들이 일정 보고서</h2><p class="report-date">${start ? `${start.replaceAll('-', '.')}부터 ${dayPlans.length}일 일정` : '나만의 포항 여행 일정'}</p><div class="report-stats"><span><b>${totalPlaces}</b><small>선택 장소</small></span><span><b>${Math.round(totalMinutes / 60)}시간</b><small>예상 체류</small></span><span><b>${dayPlans.length}일</b><small>여행 기간</small></span></div>${dayPlans.map((plan, dayIndex) => `<section class="report-day"><h3><i>${dayIndex + 1}</i>${dayIndex + 1}일차 · ${plan.theme}</h3>${plan.places.length ? plan.places.map((place, index) => `<div class="report-place"><b>${index + 1}</b><img src="${placeImage(place)}" alt=""><div><strong>${place.name}</strong><small>${place.category} · ${place.stay_minutes || 60}분</small><p>${place.address || '포항 여행 추천 장소'}</p></div></div>`).join('') : '<p class="report-empty">아직 선택한 여행지가 없습니다.</p>'}</section>`).join('')}<p class="report-tip">여행 조건과 장소를 바꾸면 보고서를 다시 생성할 수 있습니다.</p>`;
+  const shareUrl = `${window.location.origin}${window.location.pathname}#trip=${encodeTripState()}`;
+  document.querySelector('#report-qr').src = `https://quickchart.io/qr?text=${encodeURIComponent(shareUrl)}&size=180`;
+}
+document.querySelector('#report-button').addEventListener('click', () => { renderReport(); document.querySelector('#report-modal').classList.remove('hidden'); });
+document.querySelector('#report-close').addEventListener('click', () => document.querySelector('#report-modal').classList.add('hidden'));
+document.querySelector('#report-modal').addEventListener('click', (event) => { if (event.target.id === 'report-modal') event.currentTarget.classList.add('hidden'); });
+function loadSharedTrip() {
+  const encoded = new URLSearchParams(window.location.hash.slice(1)).get('trip');
+  if (!encoded) return;
+  try {
+    const state = JSON.parse(decodeURIComponent(escape(atob(encoded))));
+    const sharedPlaces = state.days.flatMap((day) => day.places).filter((place) => !places.some((item) => item.id === place.id));
+    places.push(...sharedPlaces); dayPlans = state.days.map((day) => ({ theme: day.theme, places: day.places })); currentDay = 0;
+    renderDayTabs(dayPlans.length); renderSelected(); setStatus('공유받은 여행 일정을 불러왔습니다.');
+  } catch { setStatus('공유 일정 링크를 읽지 못했습니다.'); }
+}
+loadSharedTrip();
 
 window.navermap_authFailure = () => setStatus('인증 실패 · Client ID와 허용 도메인을 확인하세요.');
 
