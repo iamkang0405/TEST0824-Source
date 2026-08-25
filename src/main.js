@@ -254,8 +254,17 @@ document.querySelector('#selected-list').addEventListener('dragstart', (event) =
   event.dataTransfer.effectAllowed = 'move';
   event.dataTransfer.setData('text/plain', item.dataset.dragId);
 });
+function commitDraggedOrder() {
+  const selected = currentPlaces();
+  const order = [...document.querySelectorAll('#selected-list [data-drag-id]')].map((item) => item.dataset.dragId);
+  const reordered = order.map((id) => selected.find((place) => place.id === id)).filter(Boolean);
+  if (reordered.length === selected.length) selected.splice(0, selected.length, ...reordered);
+  renderSelected();
+  syncMapMarkers();
+}
 document.querySelector('#selected-list').addEventListener('dragend', (event) => {
   event.target.closest('[data-drag-id]')?.classList.remove('is-dragging');
+  commitDraggedOrder();
 });
 document.querySelector('#selected-list').addEventListener('dragover', (event) => {
   const target = event.target.closest('[data-drag-id]');
@@ -268,11 +277,7 @@ document.querySelector('#selected-list').addEventListener('dragover', (event) =>
 });
 document.querySelector('#selected-list').addEventListener('drop', (event) => {
   event.preventDefault();
-  const selected = currentPlaces();
-  const order = [...document.querySelectorAll('#selected-list [data-drag-id]')].map((item) => item.dataset.dragId);
-  const reordered = order.map((id) => selected.find((place) => place.id === id)).filter(Boolean);
-  selected.splice(0, selected.length, ...reordered);
-  renderSelected(); syncMapMarkers();
+  commitDraggedOrder();
 });
 
 function dateDiff(start, end) {
