@@ -41,7 +41,7 @@ document.querySelector('#app').innerHTML = `
     <button class="peek-tab peek-top" id="peek-top" aria-label="추천기 열기">⌄</button>
     <button class="peek-tab peek-left" id="peek-left" aria-label="추천기 열기">›</button>
     <button class="peek-tab peek-right" id="peek-right" aria-label="추천기 열기">‹</button>
-    <header class="brand"><p class="eyebrow">POHANG EXPLORER</p><h1>포항 핫플 나들이 추천기</h1><p>가고 싶은 분위기에 맞춰 포항 코스를 찾아보세요.</p></header>
+    <header class="brand"><p class="eyebrow">POHANG EXPLORER</p><h1>포항 핫플 나들이 추천기</h1></header>
     <aside class="planner panel">
       <div class="panel-heading"><div><p class="eyebrow">PLAN YOUR DAY</p><h2>나의 여행 조건</h2></div><span class="step">01</span></div>
       <label>테마</label><div class="chips" id="theme-chips"><button class="chip active" data-theme="힐링">힐링</button><button class="chip" data-theme="맛집 투어">맛집 투어</button><button class="chip" data-theme="액티비티">액티비티</button><button class="chip" data-theme="문화">문화</button></div>
@@ -56,8 +56,8 @@ document.querySelector('#app').innerHTML = `
       <div class="panel-heading"><div><p class="eyebrow">MY TRIP</p><h2>내가 선택한 여행지</h2></div><span class="count" id="selected-count">0곳</span></div>
       <div id="day-tabs" class="day-tabs"><button class="day-tab active" data-day="0">1일차</button></div>
       <div class="day-theme"><span>이 날의 테마</span><select id="day-theme-select"><option>힐링</option><option>맛집 투어</option><option>액티비티</option><option>문화</option></select></div>
-      <div id="selected-list" class="selected-list"><div class="empty-state">왼쪽에서 조건을 고르면<br>추천 장소가 여기에 표시됩니다.</div></div>
-      <div class="recommend-header"><h3>테마별 추천 여행지</h3><button class="text-btn">전체 보기</button></div>
+      <div id="selected-list" class="selected-list"><div class="empty-state compact-empty">아래 추천 명소에서<br>여행지를 추가해 보세요.</div></div>
+      <div class="recommend-header"><div><p class="eyebrow">FOR YOUR DAY</p><h3>추천 명소</h3></div><button class="text-btn">전체 보기</button></div>
       <div id="place-list" class="mini-place-list"></div>
     </aside>
   </main>`;
