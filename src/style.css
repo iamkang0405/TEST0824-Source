@@ -73,3 +73,10 @@ input, select { width: 100%; padding: 11px; border: 1px solid #dce6f2; border-ra
   .recommend-dock .mini-place-list { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .panel { bottom: 104px; }
 }
+
+/* 추천명소는 패널과 겹치지 않는 하단 가로 목록으로 동작합니다. */
+.panel { bottom: 124px; }
+.recommend-dock .mini-place-list { display: flex; gap: 8px; max-height: 76px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+.recommend-dock .mini-place-list::-webkit-scrollbar { display: none; }
+.recommend-dock .place { flex: 0 0 calc((100% - 32px) / 5); }
+@media (max-width: 1100px) and (min-width: 681px) { .panel { bottom: 120px; } .recommend-dock .place { flex-basis: calc((100% - 24px) / 4); } }

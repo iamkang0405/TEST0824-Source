@@ -67,6 +67,11 @@ document.querySelector('#app').innerHTML = `
   </main>`;
 
 const list = document.querySelector('#place-list');
+list.addEventListener('wheel', (event) => {
+  if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+  event.preventDefault();
+  list.scrollLeft += event.deltaY;
+}, { passive: false });
 function renderRecommendedPlaces(theme = document.querySelector('.chip.active')?.dataset.theme || '힐링') {
   const filtered = places.filter((place) => place.themes.includes(theme));
   const visible = filtered.length ? filtered : places;
